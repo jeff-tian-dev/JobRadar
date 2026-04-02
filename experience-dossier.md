@@ -1,6 +1,8 @@
 # Experience Dossier
 
-**How to use:** This file is the single source of truth for all projects and experiences. A separate resume-tailoring step will read this file plus a target job description, then select which projects to include and what bullets to write into a fixed Word template with several project/bullet slots.
+**How to use:** This file is the single source of truth for all projects and experiences. A separate resume-tailoring step will read this file plus a target job description, then select which projects to include and what bullets to write into a fixed Word template with several project/bullet slots. Each project has a `##` **name** and a `### Subtitles` list; the tailor picks **one** subtitle to pair with that name on the resume line as `Name — Subtitle` (em dash). **`## Personal skills` and each project’s stack lists are a broad inventory:** the tailor **chooses a subset and re-orders** those lines for **each** job from the posting’s requirements—the resume skills block is **not** a copy-paste of this section.
+
+**For steadier tailored bullets:** Put **concrete numbers, scale, and tools** in **`### Outcomes`** and **`### What I built / did`** per project. The tailor can only quote what is here—thin sections tend to produce shorter, more generic resume lines.
 
 **Target roles:** Software engineering intern / new-grad / entry-level positions (Toronto / Canada focus). Likely fits: full-stack web, backend, desktop/automation, mobile, DevOps-adjacent roles.
 
@@ -9,11 +11,24 @@
 - Uptime, SLA, or latency numbers — none are instrumented.
 - Employer names — none of the projects below are employer-affiliated.
 
+## Personal skills
+
+Languages: Python, C++, Java, SQL, TypeScript, JavaScript, C  
+Frameworks & Libraries: React, FastAPI, Node.js, Pandas, NumPy  
+Tools & Technologies: PostgreSQL, Docker, Linux, Git, REST APIs, ETL Pipelines, CI/CD, Data Modeling
+
 ---
 
-## Clash AutoLoot
 
-**Aliases:** Vision-Driven Desktop Automation Bot · OpenCV Game-Client Automation Tool · Win32 UI Automation Engine · Automated Farming Bot with Local LLM Integration
+## AutoLoot
+
+Date: Sept 2025 to present
+
+### Subtitles
+- Vision-Driven Desktop Automation Bot
+- OpenCV Game-Client Automation Tool
+- Win32 UI Automation Engine
+- Automated Farming Bot with Local LLM Integration
 
 ### Type
 Personal project.
@@ -25,24 +40,24 @@ Windows desktop bot that automates repetitive Clash of Clans farming loops using
 Eliminate repetitive manual clicking through identical attack–end–home cycles in the PC version of Clash of Clans, letting the user step away while the bot farms resources on a timed or star-bonus-capped schedule.
 
 ### What I built / did
-- Designed and implemented the core farming loop: timed runs with configurable presets (5/10/15/20 min), a 900-second star-bonus hard cap, automatic home-screen recovery, and a `threading.Event`-based cooperative stop mechanism.
-- Built a vision pipeline using `cv2.matchTemplate` with bottom-half ROI cropping and confidence thresholds to detect in-game buttons and the star-bonus icon, driving all bot decisions.
-- Wrote a Win32 window-management layer that finds the game's `CROSVM_1` child HWND, calls DPI-aware APIs, and captures frames via `PrintWindow` — no global cursor dependency.
-- Implemented input simulation through `SendMessageW` for clicks and drags, with Bezier-curve mouse movement and stop-event polling between steps for responsive cancellation.
-- Created a CustomTkinter GUI that launches the bot on a daemon thread and uses `tk.after` polling for live status updates, with an optional DWM taskbar-thumbnail overlay.
-- Centralized coordinate resolution through a singleton config that reads `templates/data.json` and adapts to screen size via `pyautogui.size()`.
+- Designed and implemented the core farming loop: timed runs with configurable presets (5/10/15/20 min), a 900-second star-bonus hard cap, automatic home-screen recovery, and a cooperative stop mechanism using threading events.
+- Built a vision pipeline using OpenCV template matching with bottom-half ROI cropping and confidence thresholds to detect in-game buttons and the star-bonus icon, driving all bot decisions.
+- Wrote a Win32 window-management layer that finds the game client’s child window handle, calls DPI-aware APIs, and captures frames via PrintWindow — no global cursor dependency.
+- Implemented input simulation through SendMessage for clicks and drags, with Bezier-curve mouse movement and stop-event polling between steps for responsive cancellation.
+- Created a CustomTkinter GUI that launches the bot on a daemon thread and uses tkinter after-idle polling for live status updates, with an optional DWM taskbar-thumbnail overlay.
+- Centralized coordinate resolution through a singleton config backed by JSON data and screen-size adaptation via pyautogui.
 - Integrated a locally hosted LLaMA model to improve in-game decision stability during the automation loop.
 
 ### Stack & tools
-Python 3.8+, OpenCV (`cv2.matchTemplate`), NumPy, Pillow, CustomTkinter, PyInstaller, pyautogui, Win32 API (`SendMessageW`, `PrintWindow`, HWND management), JSON configuration, LLaMA (local inference), `threading`, `logging` (rotating file handler)
+Python 3.8+, OpenCV (template matching), NumPy, Pillow, CustomTkinter, PyInstaller, pyautogui, Win32 API (SendMessage, PrintWindow, HWND management), JSON configuration, LLaMA (local inference), threading, rotating file logging
 
 ### Scope & constraints
 - Solo developer; single-repo Python application.
 - Targets a fixed game-client window on Windows; no cross-platform support.
-- No formal test suite observed (`testing123.py` is an ad-hoc script).
-- `_handle_walls` is a stub (`pass`) — wall-upgrade automation is unimplemented.
-- README states MIT license; no `LICENSE` file in-repo.
-- No CI/CD, Dockerfile, or cloud deployment.
+- No formal test suite; only ad-hoc manual test scripts.
+- Wall-upgrade automation intentionally unimplemented (stub).
+- MIT license stated in project readme; no separate license artifact in-repo.
+- No CI/CD, container image, or cloud deployment.
 
 ### Outcomes
 - Reduced manual workflows by ~60% through structured automation and event-driven control logic.
@@ -55,12 +70,19 @@ Python, OpenCV, template matching, NumPy, Windows API, SendMessage, HWND, PrintW
 
 ---
 
-## Clash of Clans Tracker (Analytics Dashboard)
+## ClashTracker
 
-**Aliases:** Real-Time Game Analytics Dashboard · Full-Stack Data Ingestion Platform · Automated Monitoring & Reporting Pipeline · Community Analytics SPA · Scheduled ETL & REST API Service
+date: June 2025 to present
+
+### Subtitles
+- Real-Time Game Analytics Dashboard
+- Full-Stack Data Ingestion Platform
+- Automated Monitoring & Reporting Pipeline
+- Community Analytics SPA
+- Scheduled ETL & REST API Service
 
 ### Type
-Personal project (README: "Private project").
+Personal project (private repo).
 
 ### One-line summary
 Full-stack analytics platform that ingests Clash of Clans game data on a schedule, stores it in PostgreSQL via Supabase, exposes a FastAPI REST API, and renders a React + TypeScript SPA for clan leadership.
@@ -70,12 +92,12 @@ Clan co-leads were spending hours each week manually checking war results, Legen
 
 ### What I built / did
 - Architected and built the FastAPI backend with CORS, Pydantic validation-error handlers, and structured request-lifecycle logging.
-- Implemented nine domain routers (`apps/api/routers/`): dashboard, wars, raids, legends, players, tracked clans, tracked players, admin, and health.
-- Wrote a Python ingestion service using `httpx` and `supabase-py` that pulls data from the Supercell CoC API on a systemd timer (~144 runs/day), with tag encoding, timeouts, and structured `coc.*` log namespaces.
-- Designed and evolved the PostgreSQL schema across 13 migration files in `supabase/migrations/`.
-- Built a shared config module and per-request Supabase client factory (`apps/shared/config.py`, `apps/api/database.py`).
+- Implemented nine domain routers covering dashboard, wars, raids, legends, players, tracked clans, tracked players, admin, and health endpoints.
+- Wrote a Python ingestion service using httpx and the Supabase client that pulls data from the Supercell CoC API on a systemd timer (~144 runs/day), with tag encoding, timeouts, and namespaced ingestion logging.
+- Designed and evolved the PostgreSQL schema across thirteen incremental SQL migrations managed with Supabase.
+- Built a shared configuration layer and per-request Supabase client factory for the API.
 - Developed the React 19 SPA with TypeScript, Vite, Tailwind v4, Radix UI, and react-router-dom — 10 pages and 7 reusable components.
-- Set up CI via GitHub Actions to build and deploy the frontend to GitHub Pages on push to `main`, with `VITE_API_URL` pointing to a DuckDNS hostname.
+- Set up CI via GitHub Actions to build and deploy the frontend to GitHub Pages on push to the default branch, with a build-time API base URL pointing to a DuckDNS hostname.
 - Created VM deployment assets: systemd service/timer units, a Caddyfile for reverse proxy + TLS, and setup scripts, deployed on an Oracle Cloud VM.
 
 ### Stack & tools
@@ -84,7 +106,7 @@ FastAPI, Uvicorn, React 19, TypeScript, Vite, Tailwind CSS v4, Radix UI, react-r
 ### Scope & constraints
 - Solo developer.
 - Deployed on a single Oracle Cloud VM; no containerization or horizontal scaling.
-- No Dockerfile or docker-compose in-repo.
+- No Dockerfile or compose stack in-repo.
 
 ### Outcomes
 - 200+ users across a mid-size clan alliance using the dashboard/API for clan operations.
@@ -99,10 +121,17 @@ FastAPI, Uvicorn, React, TypeScript, Vite, Tailwind CSS, Radix UI, PostgreSQL, S
 
 ## ReturnClip
 
-**Aliases:** AI-Powered Returns Platform · E-Commerce Return Processing System · Cross-Platform Return Management App · Shopify Returns & Refund Integration · Mobile-First AI Condition Assessment Tool
+date: March 2026
+
+### Subtitles
+- AI-Powered Returns Platform
+- E-Commerce Return Processing System
+- Cross-Platform Return Management App
+- Shopify Returns & Refund Integration
+- Mobile-First AI Condition Assessment Tool
 
 ### Type
-Hackathon — built at Hack Canada 2026 (Reactiv ClipKit Lab track); cited in README and SUBMISSION.md.
+Hackathon — Hack Canada 2026 (Reactiv ClipKit Lab track); described in project readme and submission notes.
 
 ### One-line summary
 Multi-surface return-processing prototype spanning a SwiftUI iOS app, a Next.js API with AI condition assessment, and a React merchant dashboard, with optional Shopify order/refund integration.
@@ -111,20 +140,20 @@ Multi-surface return-processing prototype spanning a SwiftUI iOS app, a Next.js 
 Post-purchase returns typically involve slow form-and-email workflows that frustrate shoppers and consume merchant support time. ReturnClip shortens the path to: scan order → select reason → snap photo → get AI condition summary → receive refund/exchange decision — all within a short mobile interaction.
 
 ### What I built / did
-- Built the SwiftUI iOS application entry point with URL-based order-ID deep linking and a multi-step return experience flow (`ReturnClipKit/ReturnClipKit/Experience/`, `Screens/`).
-- Implemented client-side service layer calling Cloudinary (image upload) and Gemini (condition assessment) REST APIs, with a mock-fallback path documented and tested in `tests/API_TEST_RESULTS.md`.
-- Designed and built the Next.js 15 return-processing pipeline: evidence upload, AI assessment, decision engine, and execution endpoints (`backend/src/app/api/returns/`), with Zod request validation and shared TypeScript types.
+- Built the SwiftUI iOS application entry point with URL-based order-ID deep linking and a multi-step return experience across the app’s screen flow.
+- Implemented a client-side service layer calling Cloudinary (image upload) and Gemini (condition assessment) REST APIs, with a documented mock fallback path and recorded API smoke-test outcomes.
+- Designed and built the Next.js 15 return-processing pipeline: evidence upload, AI assessment, decision engine, and execution HTTP handlers, with Zod request validation and shared TypeScript types.
 - Integrated Shopify Admin API for order lookup and refund execution when merchant credentials are configured.
 - Built a React + Vite merchant dashboard with Cloudinary React for media viewing, case list, case detail, and return-media viewer components.
-- Authored a Postgres schema (Supabase migration) covering merchants, cases, evidence, decisions, executions (with idempotency keys), and audit tables. The live backend uses an in-memory Map store annotated as a Phase-D placeholder, so the SQL schema represents the target data model, not the runtime store during the hackathon demo.
+- Authored a Postgres schema (Supabase migration) covering merchants, cases, evidence, decisions, executions (with idempotency keys), and audit tables. The live backend used an in-memory map store as a short-term demo placeholder, so the SQL schema represents the target data model rather than the runtime store during the hackathon.
 
 ### Stack & tools
-Swift 5.0, SwiftUI, iOS (Xcode / `project.yml`), Next.js 15, React 19, TypeScript, Zod, Vite 6, Cloudinary (upload + React SDK), Gemini REST API (`gemini-2.0-flash`), Supabase, PostgreSQL, JSONB, Shopify Admin API, URLSession, REST
+Swift 5.0, SwiftUI, iOS (Xcode), Next.js 15, React 19, TypeScript, Zod, Vite 6, Cloudinary (upload + React SDK), Gemini REST API (gemini-2.0-flash), Supabase, PostgreSQL, JSONB, Shopify Admin API, URLSession, REST
 
 ### Scope & constraints
-- Hackathon timeline (Hack Canada 2026); ownership unclear beyond personal claim — team composition not stated in-repo.
+- Hackathon timeline (Hack Canada 2026); ownership beyond the event unclear — team composition not stated in materials reviewed.
 - No Dockerfile, CI/CD, or cloud deployment config in-repo; hosting is unknown.
-- Backend runtime is in-memory (`db.ts`), not the Postgres schema, at demo time.
+- Backend runtime for the demo used in-memory storage, not the Postgres schema.
 - Gemini API hit a 429 rate limit during recorded smoke tests; Cloudinary upload passed.
 
 ### Outcomes
@@ -135,3 +164,53 @@ Swift 5.0, SwiftUI, iOS (Xcode / `project.yml`), Next.js 15, React 19, TypeScrip
 
 ### JD keywords
 Swift, SwiftUI, iOS, Next.js, React, TypeScript, REST API, Zod, Supabase, PostgreSQL, JSONB, Shopify Admin API, Gemini, Cloudinary, URLSession, idempotency, merchant dashboard, hackathon, mobile development, full-stack, AI/LLM integration, deep linking, image upload, case lifecycle
+
+---
+
+## JobRadar
+
+Date: April 2025 to present
+
+### Subtitles
+- Local Job Search Automation Pipeline
+- ATS RSS Monitor with LLM Scoring
+- React and FastAPI Job Review Dashboard
+- SQLite-Backed Listing Intelligence System
+- Zero-API-Cost Local LLM Agent
+
+### Type
+Personal project.
+
+### One-line summary
+End-to-end job-search agent that ingests engineering listings from ATS-style RSS feeds, discovers new employers from curated and web sources, scores each role with a local Ollama model, stores everything in SQLite, and exposes a React dashboard for triage, re-scoring, alerts, and AI-assisted resume tailoring against job descriptions.
+
+### Problem / goal
+Manually checking many company career feeds is slow and easy to miss; paid job APIs and cloud LLMs add cost. This project automates monitoring, ranking, and follow-up on one machine with predictable spend (local inference only), plus a UI to act on matches quickly.
+
+### What I built / did
+- Implemented an async feed monitor using httpx and feedparser with per-feed isolation so one broken RSS URL never stops the whole run.
+- Built parsers and resolvers for common ATS feed shapes (Greenhouse, Lever, Ashby, Workable-style RSS and JSON payloads) and a normalization layer for titles, locations, salaries, and posted dates.
+- Designed a discovery loop combining a hand-seeded company list, YC company directory ingestion, and Hacker News “Who’s Hiring” parsing assisted by structured LLM output, then probing and storing verified feed URLs in SQLite.
+- Wrote the scoring pipeline: hash-based deduplication, profile-driven Ollama prompts with JSON validation and retries, weighted overall score from fit, preference, and competitiveness dimensions.
+- Shipped a FastAPI backend and a React + TypeScript + Vite dashboard for listings, company feed health, status updates, manual re-score, and optional resume tailoring that fills a Word template from a markdown experience dossier.
+- Added optional push and email alerting (ntfy, Slack webhook, SMTP digest) keyed off configurable score thresholds per profile.
+- Automated operations on macOS with launchd jobs for recurring pipeline and discovery runs, plus setup scripts for venv, database init, and optional model pull.
+- Maintained a broad pytest suite with HTTP and LLM calls mocked, covering feeds, deduplication, scoring, discovery, configuration loading, and resume-tailor document logic.
+
+### Stack & tools
+Python 3.12, FastAPI, Uvicorn, React, TypeScript, Vite, SQLite, httpx, feedparser, ollama (Python client), PyYAML, pytest, pytest-asyncio, ElementTree (WordprocessingML for docx tailoring), LibreOffice headless for PDF preview path, macOS launchd
+
+### Scope & constraints
+- Solo developer; single-user deployment on a dedicated Mac (no multi-tenant hosting story).
+- SQLite single-file database; not designed for concurrent writers beyond one machine.
+- LLM quality and latency depend on local hardware and chosen Ollama model; no cloud fallback in-repo.
+- Uptime and SLA not formally measured; alerting is best-effort.
+
+### Outcomes
+- Runs unattended on a fixed schedule (pipeline every few hours, discovery daily) without manual feed checking for tracked companies.
+- **Zero** recurring paid LLM API cost for scoring and tailoring while iterating (local Ollama only).
+- Growing automated test coverage (90+ pytest tests) to keep regressions visible while adding feed sources and dashboard features.
+- Consolidates discovery, ingestion, scoring, review, and tailored resume export in one codebase instead of separate scripts and spreadsheets.
+
+### JD keywords
+Python, FastAPI, React, TypeScript, Vite, SQLite, REST API, httpx, RSS, Atom, feedparser, Ollama, LLM, JSON, pytest, async, ETL, deduplication, full-stack, YAML, automation, macOS, launchd, job search, ATS, Greenhouse, Lever, Ashby, Word, docx, PDF, alerting
