@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Vercel Jobs</title>
+    <link>https://jobs.lever.co/vercel</link>
+    <description>Vercel job openings</description>
+    <item>
+      <title>Senior Software Engineer - Remote</title>
+      <link>https://jobs.lever.co/vercel/abc123</link>
+      <description><![CDATA[<p>Vercel is hiring a Senior Software Engineer to work on our edge infrastructure. This is a remote position.</p><p>You will work on the systems that serve billions of requests per day.</p><ul><li>Strong TypeScript/Node.js skills</li><li>Experience with edge computing</li><li>Distributed systems background</li></ul>]]></description>
+      <pubDate>Mon, 01 Jan 2025 00:00:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>Principal Engineer, Platform - San Francisco, CA</title>
+      <link>https://jobs.lever.co/vercel/abc124</link>
+      <description><![CDATA[<p>We are looking for a Principal Engineer to lead platform architecture at Vercel. Based in San Francisco, CA.</p><ul><li>10+ years of engineering experience</li><li>Experience leading technical initiatives</li><li>Deep knowledge of web infrastructure</li></ul>]]></description>
+      <pubDate>Wed, 03 Jan 2025 00:00:00 +0000</pubDate>
+    </item>
+  </channel>
+</rss>

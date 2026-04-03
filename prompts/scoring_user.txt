@@ -1,0 +1,12 @@
+## CANDIDATE PROFILE
+{{profile}}
+
+## JOB LISTING
+Title: {{title}}
+Company: {{company}}
+Location: {{location}}
+Salary: {{salary_display}}
+Remote: {{remote_display}}
+
+### Full Description
+{{description}}

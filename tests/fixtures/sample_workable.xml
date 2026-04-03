@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Render Jobs</title>
+    <link>https://apply.workable.com/render</link>
+    <description>Render job openings</description>
+    <item>
+      <title>Senior Backend Engineer</title>
+      <link>https://apply.workable.com/render/j/XYZ001</link>
+      <description><![CDATA[<p>Render is hiring a Senior Backend Engineer to help build the future of cloud infrastructure. We're a fast-growing startup powering modern web apps.</p><p>Location: San Francisco, CA (or Remote)</p><h3>What you'll do:</h3><ul><li>Design and build reliable, scalable backend systems</li><li>Work on deployment pipelines and container orchestration</li><li>Collaborate with a small, high-impact engineering team</li></ul><h3>Requirements:</h3><ul><li>4+ years of backend engineering experience</li><li>Proficiency in Go or Rust</li><li>Experience with Kubernetes</li></ul>]]></description>
+      <pubDate>Fri, 03 Jan 2025 00:00:00 +0000</pubDate>
+    </item>
+  </channel>
+</rss>

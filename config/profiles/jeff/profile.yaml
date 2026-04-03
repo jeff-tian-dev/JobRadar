@@ -1,0 +1,77 @@
+# Scoring profile for Jeff — derived from Jeff_Tian_Resume.yaml + job-search fields.
+name: Jeff Tian
+
+summary: |
+  Computer Science student (University of Toronto Mississauga, expected 2028) based in Mississauga, ON.
+  Strong hands-on projects: full-stack analytics (React, TypeScript, FastAPI, PostgreSQL/Supabase, ETL),
+  Python automation with computer vision and local LLMs, and embedded C on microcontrollers.
+  Seeking software engineering internships and junior/entry roles in backend, full-stack, or data engineering.
+
+skills:
+  expert:
+    - Python
+    - SQL
+    - REST APIs
+  proficient:
+    - TypeScript
+    - JavaScript
+    - React
+    - FastAPI
+    - PostgreSQL
+    - Java
+    - C++
+    - Git
+    - Linux
+    - Docker
+  familiar:
+    - C
+    - Node.js
+    - Pandas
+    - NumPy
+    - OpenCV
+    - ETL pipelines
+    - CI/CD
+
+experience_years: 0
+
+education:
+  - degree: "B.Sc. Computer Science (in progress)"
+    school: "University of Toronto Mississauga"
+  - degree: "CCC Senior Honour Roll — Top 100 in Canada"
+    school: "Canadian Computing Competition (Feb 2022)"
+
+preferences:
+  target_titles:
+    - "Software Engineer Intern"
+    - "Software Developer Intern"
+    - "Backend Developer Intern"
+    - "Full Stack Developer Intern"
+    - "Junior Software Engineer"
+  salary_floor: 0
+  salary_currency: CAD
+  locations:
+    - Mississauga
+    - Toronto
+    - Remote
+    - Remote (Canada)
+    - Ontario
+  remote_preference: remote_preferred
+  company_size_preference: any
+  industries_preferred:
+    - developer tools
+    - fintech
+    - cloud infrastructure
+    - education technology
+
+  deal_breakers:
+    - unpaid
+    - defense contractor
+    - requires US security clearance
+    - Job is in the US and does not offer visa sponsorship
+
+scoring_weights:
+  fit: 0.45
+  preference: 0.25
+  competitiveness: 0.30
+
+alert_threshold: 78

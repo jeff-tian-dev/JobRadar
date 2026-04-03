@@ -151,7 +151,7 @@ career_pages:
 
 This is the most important component. The LLM replaces hundreds of lines of brittle rule-based code.
 
-**Model**: `qwen2.5:14b-instruct-q4_K_M` via `ollama`. Pull it during setup. If scoring speed is a concern, `llama3.1:8b-instruct-q4_K_M` is faster but slightly less nuanced.
+**Model**: `qwen3:14b` via `ollama`. Pull it during setup. If scoring speed is a concern, `llama3.1:8b-instruct-q4_K_M` is faster but slightly less nuanced.
 
 **Scoring approach**: Send the LLM a structured prompt containing:
 1. The full user profile (from `profile.yaml`)
@@ -401,7 +401,7 @@ brew install python@3.12 ollama
 
 # 2. Start ollama and pull model
 ollama serve &    # or check if already running
-ollama pull qwen2.5:14b-instruct-q4_K_M
+ollama pull qwen3:14b
 
 # 3. Install Python dependencies
 pip install -r requirements.txt

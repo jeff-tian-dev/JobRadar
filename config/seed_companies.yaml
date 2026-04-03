@@ -1,0 +1,2577 @@
+# Seed companies to monitor. All slugs verified working as of 2026-03.
+# Add companies here and run: python scripts/run_discovery.py --sources seed
+#
+# NOTE: Only Greenhouse's public JSON API (api.greenhouse.io/v1/boards/{slug}/jobs)
+# is reliably accessible without authentication. Ashby, Workable, and Lever all
+# serve JavaScript SPAs with no public feed endpoints.
+
+companies:
+  # --- Developer Tools / Infrastructure ---
+  - name: Cloudflare
+    slug: cloudflare
+    platform: greenhouse
+    website: https://cloudflare.com
+    industry: infrastructure
+
+  - name: GitLab
+    slug: gitlab
+    platform: greenhouse
+    website: https://gitlab.com
+    industry: developer tools
+
+  - name: Vercel
+    slug: vercel
+    platform: greenhouse
+    website: https://vercel.com
+    industry: developer tools
+
+  - name: Postman
+    slug: postman
+    platform: greenhouse
+    website: https://postman.com
+    industry: developer tools
+
+  - name: CockroachLabs
+    slug: cockroachlabs
+    platform: greenhouse
+    website: https://cockroachlabs.com
+    industry: infrastructure
+
+  - name: Fivetran
+    slug: fivetran
+    platform: greenhouse
+    website: https://fivetran.com
+    industry: data
+
+  # --- AI / ML ---
+  - name: Anthropic
+    slug: anthropic
+    platform: greenhouse
+    website: https://anthropic.com
+    industry: AI/ML
+
+  # --- Fintech ---
+  - name: Stripe
+    slug: stripe
+    platform: greenhouse
+    website: https://stripe.com
+    industry: fintech
+
+  - name: Brex
+    slug: brex
+    platform: greenhouse
+    website: https://brex.com
+    industry: fintech
+
+  - name: Robinhood
+    slug: robinhood
+    platform: greenhouse
+    website: https://robinhood.com
+    industry: fintech
+
+  - name: Coinbase
+    slug: coinbase
+    platform: greenhouse
+    website: https://coinbase.com
+    industry: fintech
+
+  # --- SaaS / Monitoring ---
+  - name: Datadog
+    slug: datadog
+    platform: greenhouse
+    website: https://datadoghq.com
+    industry: monitoring
+
+  - name: PagerDuty
+    slug: pagerduty
+    platform: greenhouse
+    website: https://pagerduty.com
+    industry: monitoring
+
+  - name: MongoDB
+    slug: mongodb
+    platform: greenhouse
+    website: https://mongodb.com
+    industry: database
+
+  - name: Okta
+    slug: okta
+    platform: greenhouse
+    website: https://okta.com
+    industry: security
+
+  - name: Twilio
+    slug: twilio
+    platform: greenhouse
+    website: https://twilio.com
+    industry: communication
+
+  - name: Dropbox
+    slug: dropbox
+    platform: greenhouse
+    website: https://dropbox.com
+    industry: productivity
+
+  - name: Figma
+    slug: figma
+    platform: greenhouse
+    website: https://figma.com
+    industry: developer tools
+
+  - name: Lyft
+    slug: lyft
+    platform: greenhouse
+    website: https://lyft.com
+    industry: mobility
+
+  # --- Toronto-area companies ---
+  - name: D2L
+    slug: d2l
+    platform: greenhouse
+    website: https://d2l.com
+    industry: edtech
+
+  - name: Hootsuite
+    slug: hootsuite
+    platform: greenhouse
+    website: https://hootsuite.com
+    industry: social media
+
+  - name: Ritual
+    slug: ritual
+    platform: greenhouse
+    website: https://ritual.co
+    industry: food tech
+
+  # --- More AI / ML ---
+  - name: Scale AI
+    slug: scaleai
+    platform: greenhouse
+    website: https://scale.com
+    industry: AI/ML
+
+  - name: CoreWeave
+    slug: coreweave
+    platform: greenhouse
+    website: https://coreweave.com
+    industry: AI/ML infrastructure
+
+  - name: Databricks
+    slug: databricks
+    platform: greenhouse
+    website: https://databricks.com
+    industry: data/AI
+
+  - name: Temporal Technologies
+    slug: temporaltechnologies
+    platform: greenhouse
+    website: https://temporal.io
+    industry: developer tools
+
+  # --- More Developer Tools / SaaS ---
+  - name: Elastic
+    slug: elastic
+    platform: greenhouse
+    website: https://elastic.co
+    industry: search/observability
+
+  - name: Intercom
+    slug: intercom
+    platform: greenhouse
+    website: https://intercom.com
+    industry: customer engagement
+
+  - name: Amplitude
+    slug: amplitude
+    platform: greenhouse
+    website: https://amplitude.com
+    industry: analytics
+
+  - name: Mixpanel
+    slug: mixpanel
+    platform: greenhouse
+    website: https://mixpanel.com
+    industry: analytics
+
+  - name: Braze
+    slug: braze
+    platform: greenhouse
+    website: https://braze.com
+    industry: marketing automation
+
+  - name: Pendo
+    slug: pendo
+    platform: greenhouse
+    website: https://pendo.io
+    industry: product analytics
+
+  - name: Asana
+    slug: asana
+    platform: greenhouse
+    website: https://asana.com
+    industry: productivity
+
+  - name: Airtable
+    slug: airtable
+    platform: greenhouse
+    website: https://airtable.com
+    industry: productivity
+
+  - name: Grammarly
+    slug: grammarly
+    platform: greenhouse
+    website: https://grammarly.com
+    industry: AI writing
+
+  - name: Duolingo
+    slug: duolingo
+    platform: greenhouse
+    website: https://duolingo.com
+    industry: edtech
+
+  - name: Instacart
+    slug: instacart
+    platform: greenhouse
+    website: https://instacart.com
+    industry: e-commerce
+
+  - name: Reddit
+    slug: reddit
+    platform: greenhouse
+    website: https://reddit.com
+    industry: social media
+
+  - name: Faire
+    slug: faire
+    platform: greenhouse
+    website: https://faire.com
+    industry: e-commerce
+
+  - name: Nubank
+    slug: nubank
+    platform: greenhouse
+    website: https://nubank.com.br
+    industry: fintech
+
+  - name: Tulip
+    slug: tulip
+    platform: greenhouse
+    website: https://tulip.retail
+    industry: retail tech
+
+  # --- Ashby companies ---
+  - name: OpenAI
+    slug: openai
+    platform: ashby
+    website: https://openai.com
+    industry: AI/ML
+
+  - name: Perplexity
+    slug: perplexity
+    platform: ashby
+    website: https://perplexity.ai
+    industry: AI/ML
+
+  - name: Cursor
+    slug: cursor
+    platform: ashby
+    website: https://cursor.com
+    industry: developer tools
+
+  - name: Linear
+    slug: linear
+    platform: ashby
+    website: https://linear.app
+    industry: developer tools
+
+  - name: Ramp
+    slug: ramp
+    platform: ashby
+    website: https://ramp.com
+    industry: fintech
+
+  - name: Cohere
+    slug: cohere
+    platform: ashby
+    website: https://cohere.com
+    industry: AI/ML
+
+  - name: Replit
+    slug: replit
+    platform: ashby
+    website: https://replit.com
+    industry: developer tools
+
+  - name: Deel
+    slug: deel
+    platform: ashby
+    website: https://deel.com
+    industry: HR/payroll
+
+  # --- Lever companies ---
+  - name: Plaid
+    slug: plaid
+    platform: lever
+    website: https://plaid.com
+    industry: fintech
+
+  - name: Airbnb
+    slug: airbnb
+    platform: lever
+    website: https://airbnb.com
+    industry: travel/hospitality
+
+  - name: Wattpad
+    slug: wattpad
+    platform: lever
+    website: https://wattpad.com
+    industry: media/content
+
+  - name: Wave
+    slug: waveapps
+    platform: lever
+    website: https://waveapps.com
+    industry: fintech
+
+  # --- More Greenhouse companies ---
+  - name: Affirm
+    slug: affirm
+    platform: greenhouse
+    website: https://affirm.com
+    industry: fintech
+
+  - name: Carta
+    slug: carta
+    platform: greenhouse
+    website: https://carta.com
+    industry: fintech
+
+  - name: New Relic
+    slug: newrelic
+    platform: greenhouse
+    website: https://newrelic.com
+    industry: monitoring
+
+  # --- More Ashby companies ---
+  - name: Snowflake
+    slug: snowflake
+    platform: ashby
+    website: https://snowflake.com
+    industry: data/cloud
+
+  - name: Notion
+    slug: notion
+    platform: ashby
+    website: https://notion.so
+    industry: productivity
+
+  - name: Wealthsimple
+    slug: wealthsimple
+    platform: ashby
+    website: https://wealthsimple.com
+    industry: fintech
+
+  - name: Grafana Labs
+    slug: grafana
+    platform: ashby
+    website: https://grafana.com
+    industry: monitoring
+
+  - name: DoorDash
+    slug: doordash
+    platform: ashby
+    website: https://doordash.com
+    industry: food delivery
+
+  - name: Gusto
+    slug: gusto
+    platform: ashby
+    website: https://gusto.com
+    industry: HR/payroll
+
+  - name: Retool
+    slug: retool
+    platform: ashby
+    website: https://retool.com
+    industry: developer tools
+
+  - name: StackAdapt
+    slug: stackadapt
+    platform: ashby
+    website: https://stackadapt.com
+    industry: adtech
+
+  - name: Quora
+    slug: quora
+    platform: ashby
+    website: https://quora.com
+    industry: social media
+
+  - name: Miovision
+    slug: miovision
+    platform: ashby
+    website: https://miovision.com
+    industry: smart cities
+
+  - name: Clearco
+    slug: clearco
+    platform: ashby
+    website: https://clearco.com
+    industry: fintech
+
+  # --- Imported from SimplifyJobs/Summer2026-Internships ---
+  - name: 10a Labs
+    slug: 10alabs
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: AI Intern to the CEO
+    slug: cyvl
+    platform: ashby
+    website: ""
+    industry: software
+  - name: ALKU
+    slug: alku
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: AXQ Capital
+    slug: axq
+    platform: greenhouse
+    website: ""
+    industry: finance/quant
+  - name: AXS
+    slug: axs
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Abridge
+    slug: abridge
+    platform: ashby
+    website: ""
+    industry: software
+  - name: AccuWeather
+    slug: accuweather
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Ada
+    slug: ada18
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Aechelon Technology
+    slug: aechelontechnology
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: AeroVect
+    slug: AeroVect
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Aevex Aerospace
+    slug: aevexaerospace
+    platform: greenhouse
+    website: ""
+    industry: hardware
+  - name: Affirm
+    slug: affirm
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Age of Learning
+    slug: aofl
+    platform: lever
+    website: ""
+    industry: software
+  - name: Agentis Capital
+    slug: Agentis-Capital-Advisors
+    platform: ashby
+    website: ""
+    industry: finance/quant
+  - name: AirCapture
+    slug: aircapture
+    platform: greenhouse
+    website: ""
+    industry: hardware
+  - name: Airspace Intelligence
+    slug: airspace-intelligence.com
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Alamar Biosciences
+    slug: alamarbiosciences
+    platform: greenhouse
+    website: ""
+    industry: hardware
+  - name: Alarm.com
+    slug: alarmcom
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Aledade
+    slug: aledade
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Alertus Technologies
+    slug: alertus
+    platform: lever
+    website: ""
+    industry: hardware
+  - name: Allium
+    slug: allium
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Alloy Enterprises
+    slug: alloyenterprises
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Alo Yoga
+    slug: aloyoga
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Anduril
+    slug: andurilindustries
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Anima
+    slug: anima
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Antora Energy
+    slug: antora
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: AnySignal
+    slug: anysignal
+    platform: lever
+    website: ""
+    industry: software
+  - name: Appian
+    slug: appian
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Applied Intuition
+    slug: appliedintuition
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Apptronik
+    slug: apptronik
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Arcesium
+    slug: arcesiumllc
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Armada
+    slug: armada
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Arvinas
+    slug: arvinas
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Assort Health
+    slug: assorthealth
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Assured Guaranty
+    slug: assuredguaranty
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Astera Labs
+    slug: asteraearlycareer2026
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Astranis
+    slug: astranis
+    platform: greenhouse
+    website: ""
+    industry: hardware
+  - name: Atlas Energy Solutions
+    slug: atlassand
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Auctor
+    slug: auctor
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Audax Group
+    slug: audaxgroup
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Authentic
+    slug: authenticbrandsgroup
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Ava Labs
+    slug: avalabs
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Axon
+    slug: axontalentcommunity
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Axsome Therapeutics Inc
+    slug: axsometherapeutics
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Aypa Power
+    slug: aypapower
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Babel Street
+    slug: babelstreet
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Bandwidth
+    slug: bandwidth
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Base Power
+    slug: base-power
+    platform: ashby
+    website: ""
+    industry: hardware
+  - name: Baseten
+    slug: baseten
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Beta Technologies
+    slug: beta
+    platform: lever
+    website: ""
+    industry: software
+  - name: BetterHelp
+    slug: betterhelpcom
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Blockchain.com
+    slug: blockchain
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Blockhouse
+    slug: blockhouse
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Bloomberg Philanthropies
+    slug: bloombergdotorg
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Blue Sky Innovators
+    slug: blueskyinnovators
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: BlueLabs Analytics
+    slug: bluelabsanalyticsinc
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: BlueRock Therapeutics
+    slug: bluerocktx
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Bracebridge Capital
+    slug: bracebridgecapital
+    platform: greenhouse
+    website: ""
+    industry: finance/quant
+  - name: Brevium
+    slug: brevium
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Bright Machines
+    slug: brightmachines
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Brooks Running
+    slug: brooksrunning
+    platform: lever
+    website: ""
+    industry: software
+  - name: CLO Virtual Fashion
+    slug: clovirtualfashion
+    platform: lever
+    website: ""
+    industry: software
+  - name: CMTelematics
+    slug: cmt
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: COCO Robotics
+    slug: cocodelivery
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Carbon Direct
+    slug: carbondirect
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Cartesia
+    slug: cartesia
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Cell Signaling Technology
+    slug: cellsignalingtechnology79
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Center for AI Safety
+    slug: aisafety
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Centerfield
+    slug: centerfield
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Certik
+    slug: certik
+    platform: lever
+    website: ""
+    industry: software
+  - name: Chainlink Labs
+    slug: chainlink-labs
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Charge Robotics
+    slug: charge-robotics
+    platform: ashby
+    website: ""
+    industry: hardware
+  - name: Cirque du Soleil
+    slug: cirquedusoleil
+    platform: lever
+    website: ""
+    industry: hardware
+  - name: Clipboard Health
+    slug: clipboard
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Clockwork Systems
+    slug: clockworksystems
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Cluely
+    slug: cluely
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Cognitiv
+    slug: cognitiv
+    platform: lever
+    website: ""
+    industry: software
+  - name: Collaborative Robotics
+    slug: cobot
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Comstock Companies
+    slug: comstock
+    platform: greenhouse
+    website: ""
+    industry: hardware
+  - name: ConductorOne
+    slug: conductorone
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Confluent
+    slug: confluent
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Coverdash
+    slug: coverdash
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Creatify Lab
+    slug: creatify
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Crest Industries
+    slug: crestoperations
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Cresta
+    slug: cresta
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Cultivarium
+    slug: convergentresearch
+    platform: lever
+    website: ""
+    industry: software
+  - name: D2 Consulting
+    slug: d2consulting
+    platform: greenhouse
+    website: ""
+    industry: hardware
+  - name: DESIGNME Hair
+    slug: designmehair
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: DH Pace
+    slug: dhpace
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: DRW Holdings
+    slug: drwuniversityjobs
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: DV Trading
+    slug: dvtrading
+    platform: greenhouse
+    website: ""
+    industry: finance/quant
+  - name: Dandy
+    slug: dandy
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Dark Wolf Solutions
+    slug: darkwolfsolutions
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Decagon
+    slug: decagon
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Defense Unicorns
+    slug: defenseunicorns
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Delinea
+    slug: delinea
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Deliveroo
+    slug: deliveroo
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Democratic Governors Association
+    slug: dga
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: DiDi Global
+    slug: didi
+    platform: greenhouse
+    website: ""
+    industry: hardware
+  - name: Digs
+    slug: digs
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Diligent Corporation
+    slug: diligentcorporation
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Diversified Automation
+    slug: diversified-automation
+    platform: lever
+    website: ""
+    industry: software
+  - name: Doctors Without Borders
+    slug: msfcareers
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Docugami
+    slug: docugami
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: DoorDash
+    slug: doordashusa
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Dorsia
+    slug: dorsia
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Double Good
+    slug: doublegood
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: DoubleVerify
+    slug: doubleverify
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Doximity
+    slug: doximity
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Drivemode
+    slug: drivemode
+    platform: lever
+    website: ""
+    industry: software
+  - name: Drivetrain
+    slug: drivetrain
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Dropbox
+    slug: embed
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Dryft
+    slug: dryft
+    platform: ashby
+    website: ""
+    industry: software
+  - name: EQT Corporation
+    slug: eqtcorporation
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Eigen Labs
+    slug: eigen-labs
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Eight Sleep
+    slug: eightsleep
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Ekimetrics
+    slug: ekimetrics
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Elf Beauty
+    slug: elfbeauty
+    platform: lever
+    website: ""
+    industry: software
+  - name: Elicit
+    slug: elicit
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Ellipsis Labs
+    slug: ellipsislabs
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Eloquent AI
+    slug: eloquentai
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Energy Vault
+    slug: EnergyVault
+    platform: lever
+    website: ""
+    industry: software
+  - name: Epic
+    slug: ripplematchinterns
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Etched
+    slug: Etched
+    platform: ashby
+    website: ""
+    industry: hardware
+  - name: Eulerity
+    slug: eulerity
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Eventual
+    slug: eventualcomputing
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Exa Labs
+    slug: exa
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Exegy
+    slug: exegy
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Extreme Networks
+    slug: extremenetworks
+    platform: lever
+    website: ""
+    industry: hardware
+  - name: Eyebot
+    slug: eyebot
+    platform: ashby
+    website: ""
+    industry: hardware
+  - name: Faculty AI
+    slug: faculty
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Farsight
+    slug: farsight
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Fehr & Peers
+    slug: fehrandpeers
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Field AI
+    slug: field-ai
+    platform: lever
+    website: ""
+    industry: software
+  - name: Figure
+    slug: figureai
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Financial Technology Partners
+    slug: financialtechnologypartners
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Five Rings Capital
+    slug: fiveringsllc
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Fizz
+    slug: fizz
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Flagship Pioneering
+    slug: fspco-op012325
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Fortera
+    slug: forteracorporation
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Four Hands
+    slug: fourhands
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Fundwell
+    slug: fundwell
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Fussball Club Cincinnati LLC (“FC Cincinnati”)
+    slug: fccincinnati
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: G2
+    slug: G2
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: GCM Grosvenor
+    slug: gcmgrosvenor
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Galaxy
+    slug: galaxydigitalservices
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Galileo Financial Technologies
+    slug: galileofinancialtechnologies
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Garda Capital Partners
+    slug: gardacp
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Gelber Group
+    slug: gelberhandshake
+    platform: greenhouse
+    website: ""
+    industry: finance/quant
+  - name: Genesis Therapeutics
+    slug: genesis-therapeutics
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Geneva Trading
+    slug: genevatrading
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Geotab
+    slug: internshiplist2000
+    platform: greenhouse
+    website: ""
+    industry: hardware
+  - name: Giga AI
+    slug: gigaml
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Gimlet Labs
+    slug: gimlet
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Ginkgo Bioworks
+    slug: ginkgobioworks
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: GlossGenius
+    slug: glossgenius
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Glydways
+    slug: glydways
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: GoDaddy
+    slug: eventsandinterns
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Graphcore
+    slug: graphcore
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Grassroots Analytics
+    slug: grassrootsanalytics
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: HCompany
+    slug: hcompany
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: HELLBENDER
+    slug: hellbenderinc
+    platform: greenhouse
+    website: ""
+    industry: hardware
+  - name: HRL Laboratories
+    slug: dodmg
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Haize Labs
+    slug: haizelabs
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Handshake
+    slug: handshake
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Hanna Andersson
+    slug: hannaandersson
+    platform: lever
+    website: ""
+    industry: software
+  - name: Harbinger Motors
+    slug: harbingermotors
+    platform: greenhouse
+    website: ""
+    industry: hardware
+  - name: Haven Studios
+    slug: haven
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Hayden AI
+    slug: haydenai
+    platform: ashby
+    website: ""
+    industry: software
+  - name: HeartFlow
+    slug: heartflowinc
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Hermeus
+    slug: hermeus
+    platform: lever
+    website: ""
+    industry: hardware
+  - name: HeyGen
+    slug: heygen
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Hippocratic AI
+    slug: Hippocratic%20AI
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Hometap
+    slug: hometapjobs
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Hone Health
+    slug: honehealth
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Hudl
+    slug: hudl
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: HumanSignal
+    slug: humansignal
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: ID.me
+    slug: idmeuniversityrecruiting
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: IMO Health
+    slug: imo-online
+    platform: lever
+    website: ""
+    industry: software
+  - name: Ibility
+    slug: ibility
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Illumio
+    slug: illumio
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Impinj
+    slug: impinjexternal
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Impiricus
+    slug: impiricus
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Insitro
+    slug: insitro
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Instawork
+    slug: instawork
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Institute of Foundation Models
+    slug: ifm-us
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Integra FEC
+    slug: integrainterns
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: InterWorks
+    slug: interworks
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Internship
+    slug: interplay
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Intropic
+    slug: intropic
+    platform: lever
+    website: ""
+    industry: software
+  - name: Iovance Biotherapeutics
+    slug: iovancebiotherapeutics
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Ironclad
+    slug: ironcladhq
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Istari Digital
+    slug: istaridigital.ai
+    platform: lever
+    website: ""
+    industry: software
+  - name: Ivo
+    slug: ivo
+    platform: lever
+    website: ""
+    industry: software
+  - name: Jane Street
+    slug: janestreet
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Judi Health
+    slug: capitalrx
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Jumio
+    slug: jumio
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Jump Crypto
+    slug: jumpcrypto
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Juniper Square
+    slug: junipersquare
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Kabam
+    slug: kabam
+    platform: lever
+    website: ""
+    industry: software
+  - name: Kargo
+    slug: kargo
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Kensington
+    slug: kensingtontours
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Keyrock
+    slug: keyrock
+    platform: ashby
+    website: ""
+    industry: finance/quant
+  - name: Klaviyo
+    slug: klaviyocampus
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: KnowBe4
+    slug: knowbe4
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Kodiak Robotics
+    slug: kodiak
+    platform: greenhouse
+    website: ""
+    industry: hardware
+  - name: Kouper Health
+    slug: kouperhealth
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Kyowa Kirin
+    slug: kyowakirinusa90
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: LG Electronics
+    slug: lgelectronics
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Labelbox
+    slug: labelbox
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Lambda
+    slug: Lambda
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Lasko Products
+    slug: laskoproducts
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Layup Parts
+    slug: layup
+    platform: lever
+    website: ""
+    industry: software
+  - name: League
+    slug: leagueinc
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Legis1
+    slug: sunwatercapital
+    platform: lever
+    website: ""
+    industry: software
+  - name: Lendbuzz
+    slug: lendbuzz
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Level AI
+    slug: levelai
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Lightmatter
+    slug: lightmatter
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Lightspeed Systems
+    slug: lightspeedsystems
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Lila Sciences
+    slug: lila
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Lindy
+    slug: lindy
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Link
+    slug: linkllc
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Locus Robotics
+    slug: locusrobotics
+    platform: greenhouse
+    website: ""
+    industry: hardware
+  - name: LogicGate
+    slug: logicgate
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Loop
+    slug: loop
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Lucid Bots
+    slug: lucidbots
+    platform: greenhouse
+    website: ""
+    industry: hardware
+  - name: Lucid Motors
+    slug: lucidmotors
+    platform: greenhouse
+    website: ""
+    industry: hardware
+  - name: Lumos
+    slug: lumosfiber
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Lydian
+    slug: lydian
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Lynk
+    slug: Lynk
+    platform: ashby
+    website: ""
+    industry: hardware
+  - name: MCG Health
+    slug: mcghealth
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Mach9
+    slug: mach9
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Machina Labs
+    slug: MachinaLabs
+    platform: lever
+    website: ""
+    industry: software
+  - name: Madison Energy Infrastructure
+    slug: madisonenergyinfrastructure
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Magnet Forensics
+    slug: magnetforensics
+    platform: lever
+    website: ""
+    industry: software
+  - name: Major League Baseball
+    slug: baltimoreorioles
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Marshall Wace
+    slug: mwinternshipprogram
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: MatX
+    slug: matx
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Match Group
+    slug: matchgroup
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Maven Securities
+    slug: emergingtalent
+    platform: greenhouse
+    website: ""
+    industry: finance/quant
+  - name: Mechanize
+    slug: mechanize
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Medical Informatics Engineering
+    slug: medicalinformaticsengineering
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Medra
+    slug: medraai
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Mentis AI
+    slug: mentis
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: MerQube
+    slug: merqube
+    platform: greenhouse
+    website: ""
+    industry: finance/quant
+  - name: Mercedes-Benz
+    slug: MBRDNA
+    platform: lever
+    website: ""
+    industry: software
+  - name: Mercor
+    slug: mercor
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Mercury
+    slug: mercury
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Meridian Partners
+    slug: morsecorpcoop
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Meriton
+    slug: meriton
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Metalenz
+    slug: metalenz
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Metron
+    slug: metron
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Mistral AI
+    slug: mistral
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Moloco
+    slug: moloco
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Monarch Money
+    slug: monarchmoney
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Multiply Labs
+    slug: multiplylabs
+    platform: lever
+    website: ""
+    industry: software
+  - name: Netic
+    slug: netic
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Neuralink
+    slug: neuralink
+    platform: greenhouse
+    website: ""
+    industry: hardware
+  - name: NewsBreak
+    slug: newsbreak
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Newsela
+    slug: newsela
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Nex
+    slug: nex
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Nobull
+    slug: nobullproject
+    platform: lever
+    website: ""
+    industry: software
+  - name: Nooks
+    slug: nooks
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Northmarq
+    slug: northmarq
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Notability
+    slug: gingerlabsinc
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Notion
+    slug: notion
+    platform: ashby
+    website: ""
+    industry: software
+  - name: ONE Finance
+    slug: oneapp
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: OTR Solutions
+    slug: otrcapital1
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: OceanX
+    slug: oceanx
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Octaura
+    slug: octaura
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: OpenX
+    slug: openx
+    platform: lever
+    website: ""
+    industry: software
+  - name: Optiver
+    slug: tradingacademy2025
+    platform: greenhouse
+    website: ""
+    industry: finance/quant
+  - name: OpusClip
+    slug: opusclip
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Osmo
+    slug: osmo
+    platform: ashby
+    website: ""
+    industry: hardware
+  - name: Overview Energy
+    slug: overviewenergy
+    platform: ashby
+    website: ""
+    industry: hardware
+  - name: PMG
+    slug: pmg
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: PVM
+    slug: pvminc
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Pacvue
+    slug: pacvue
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Palantir
+    slug: palantir
+    platform: lever
+    website: ""
+    industry: software
+  - name: Palmetto Clean Technology
+    slug: palmettocleantech
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Parallel Systems
+    slug: parallel
+    platform: greenhouse
+    website: ""
+    industry: hardware
+  - name: Parallel Web Systems
+    slug: parallel
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Parspec
+    slug: parspec
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Patreon
+    slug: patreon
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Penumbra Inc
+    slug: penumbrainc
+    platform: lever
+    website: ""
+    industry: software
+  - name: Perpay
+    slug: perpay
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Perplexity AI
+    slug: Perplexity
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Phia
+    slug: phia
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Phoenix Contact
+    slug: phoenixcontact
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Piaggio Fast Forward
+    slug: piaggiofastforward
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Pivotal Software
+    slug: pivotal
+    platform: lever
+    website: ""
+    industry: hardware
+  - name: Planet
+    slug: planetlabs
+    platform: greenhouse
+    website: ""
+    industry: hardware
+  - name: Point72
+    slug: point72
+    platform: greenhouse
+    website: ""
+    industry: finance/quant
+  - name: Praxent
+    slug: praxent
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Presence
+    slug: presencelearning
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Profluent
+    slug: profluent
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Prolaio
+    slug: prolaio
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Proxima
+    slug: proxima
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Pulse
+    slug: pulse
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Pure Storage
+    slug: purestorage
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: QuEra Computing
+    slug: queracomputinginc
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Quadrature Capital
+    slug: quadraturecapital
+    platform: greenhouse
+    website: ""
+    industry: finance/quant
+  - name: QuantCo
+    slug: quantco-
+    platform: lever
+    website: ""
+    industry: software
+  - name: REGENT
+    slug: regent
+    platform: ashby
+    website: ""
+    industry: software
+  - name: RF-SMART
+    slug: rfsmart
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: RTW Investments
+    slug: rtwinvestments
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Reacher
+    slug: reacher
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Reality Defender
+    slug: realitydefender
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Redwood Credit Union
+    slug: redwoodcu
+    platform: lever
+    website: ""
+    industry: software
+  - name: Redwood Materials
+    slug: redwoodmaterials
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Reflect Orbital
+    slug: reflect-orbital
+    platform: ashby
+    website: ""
+    industry: hardware
+  - name: Relativity Space
+    slug: rsinternboard
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Reli
+    slug: shopreli
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Reliable Robotics
+    slug: reliable
+    platform: lever
+    website: ""
+    industry: software
+  - name: Rexford Industrial
+    slug: rexfordindustrial
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Rigetti
+    slug: rigetti
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Rilla
+    slug: rilla
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Root Access
+    slug: root-access
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: SK hynix
+    slug: skhynixamerica
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Samaya
+    slug: samayaai
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Samba TV
+    slug: sambatv
+    platform: lever
+    website: ""
+    industry: software
+  - name: Samsung
+    slug: samsungresearchamericainternship
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: SanMar
+    slug: sanmar
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Sanctuary AI
+    slug: sanctuary
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Saronic
+    slug: saronic
+    platform: lever
+    website: ""
+    industry: hardware
+  - name: Saviynt
+    slug: saviynt
+    platform: lever
+    website: ""
+    industry: software
+  - name: Schonfeld
+    slug: schonfeld
+    platform: greenhouse
+    website: ""
+    industry: finance/quant
+  - name: Scientech Research
+    slug: scientech-research
+    platform: ashby
+    website: ""
+    industry: hardware
+  - name: Scout Motors
+    slug: scoutmotors
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Seven Research
+    slug: sevenresearch
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Sezzle
+    slug: sezzle
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: SharkNinja
+    slug: sharkninjaoperatingllc
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Shield AI
+    slug: shieldai
+    platform: lever
+    website: ""
+    industry: hardware
+  - name: Sierra
+    slug: Sierra
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Sift
+    slug: siftstack
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Sigma Computing
+    slug: sigmacomputing
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Signifyd
+    slug: signifyd95
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Sila Nanotechnologies
+    slug: silananotechnologies
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Simular
+    slug: Simular
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Skydio
+    slug: skydio
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Skyryse
+    slug: skyryse
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Snowflake
+    slug: snowflake
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Socure
+    slug: socure
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: SoloPulse
+    slug: solopulseco
+    platform: lever
+    website: ""
+    industry: software
+  - name: Solva
+    slug: solva
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Sono Bello
+    slug: sonobello
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: SonoThera
+    slug: sonothera
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Sony Interactive Entertainment
+    slug: sonyinteractiveentertainmentglobal
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: SpaceX
+    slug: spacex
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Span
+    slug: span
+    platform: ashby
+    website: ""
+    industry: hardware
+  - name: SpyCloud
+    slug: spycloud
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Stand Together
+    slug: standtogether
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Starburst
+    slug: starburst
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Stevens Capital Management
+    slug: ftandinternships
+    platform: greenhouse
+    website: ""
+    industry: finance/quant
+  - name: StockX
+    slug: stockx
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Strand Therapeutics
+    slug: strandtherapeutics
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Strata Decision Technology
+    slug: stratacareers
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: SummitTX
+    slug: summit
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: SupplyHouse.com
+    slug: supplyhouse
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Symmetry Systems
+    slug: SymmetrySystems
+    platform: lever
+    website: ""
+    industry: software
+  - name: TENEX.AI
+    slug: tenex
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Taara
+    slug: taaraconnect
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Tahoe Therapeutics
+    slug: tahoebio-ai
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Talos Trading
+    slug: Talos-Trading
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Tandem
+    slug: tandem
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Tatari
+    slug: tatari
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Tekton
+    slug: tekton
+    platform: lever
+    website: ""
+    industry: software
+  - name: Teleo
+    slug: teleo
+    platform: lever
+    website: ""
+    industry: hardware
+  - name: Tenstorrent
+    slug: tenstorrentuniversity
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Tessera Labs
+    slug: tessera-labs
+    platform: ashby
+    website: ""
+    industry: software
+  - name: The Allen Institute for AI
+    slug: thealleninstitute
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: The Exploration Company
+    slug: the-exploration-company
+    platform: ashby
+    website: ""
+    industry: software
+  - name: The Health Management Academy
+    slug: thehealthmanagementacademy
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: The New York Times
+    slug: thenewyorktimes
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: The Trade Desk
+    slug: thetradedesk
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: The Voleon Group
+    slug: voleon
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Tilde Research
+    slug: tilderesearch
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Together AI
+    slug: togetherai
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Token Metrics
+    slug: tokenmetrics
+    platform: lever
+    website: ""
+    industry: software
+  - name: Tonal
+    slug: tonal
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Tools for Humanity
+    slug: Tools%20for%20Humanity
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Toyota Research Institute
+    slug: tri
+    platform: lever
+    website: ""
+    industry: software
+  - name: Transcarent
+    slug: transcarent
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: True Anomaly
+    slug: trueanomalyinc
+    platform: greenhouse
+    website: ""
+    industry: hardware
+  - name: Trumid
+    slug: trumid
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Truveta
+    slug: truveta
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Tuesday Lab
+    slug: tuesday-lab
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Typeface
+    slug: typeface
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: UiPath
+    slug: uipath
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Ultima Genomics
+    slug: ultimagenomics
+    platform: greenhouse
+    website: ""
+    industry: hardware
+  - name: Uncountable
+    slug: uncountable
+    platform: lever
+    website: ""
+    industry: software
+  - name: Unwrap
+    slug: Unwrap
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Varda
+    slug: vardaspace
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Vatic Investments
+    slug: vaticlabs
+    platform: greenhouse
+    website: ""
+    industry: finance/quant
+  - name: Veeva Systems
+    slug: veeva
+    platform: lever
+    website: ""
+    industry: software
+  - name: Vendelux
+    slug: vendelux
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Verkada
+    slug: verkada
+    platform: greenhouse
+    website: ""
+    industry: hardware
+  - name: Versana
+    slug: Versana
+    platform: lever
+    website: ""
+    industry: software
+  - name: Virtru
+    slug: virtru
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Vise
+    slug: viseai
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Visier
+    slug: visiersolutionsinc
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Voltus
+    slug: voltus
+    platform: lever
+    website: ""
+    industry: finance/quant
+  - name: Voyager Technologies
+    slug: voyagertechnologiesinc
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Vulcan Elements
+    slug: vulcanelements
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Waabi
+    slug: waabi
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: Wade Trim
+    slug: wadetrim
+    platform: lever
+    website: ""
+    industry: software
+  - name: Walrus
+    slug: walrusfi
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Wasabi
+    slug: wasabi
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Waterfall
+    slug: waterfall
+    platform: lever
+    website: ""
+    industry: software
+  - name: WeRide
+    slug: weride
+    platform: lever
+    website: ""
+    industry: hardware
+  - name: WebAI
+    slug: webai
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: Weiss Asset Management
+    slug: weissassetmanagement
+    platform: greenhouse
+    website: ""
+    industry: finance/quant
+  - name: WhatNot
+    slug: whatnot
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Wheely
+    slug: wheely
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Wintermute
+    slug: wintermute-trading
+    platform: lever
+    website: ""
+    industry: finance/quant
+  - name: Worldly
+    slug: worldly
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Woven
+    slug: woven-by-toyota
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: XPENG Motors
+    slug: xpengmotors
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Xaira Therapeutics
+    slug: xairatherapeutics
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: Xometry
+    slug: xometry
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: YOU.com
+    slug: youcom
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Zello
+    slug: Zello
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Zip
+    slug: zip
+    platform: ashby
+    website: ""
+    industry: software
+  - name: Zoox
+    slug: zoox
+    platform: lever
+    website: ""
+    industry: hardware
+  - name: Zscaler
+    slug: zscaler
+    platform: greenhouse
+    website: ""
+    industry: software
+  - name: Zuru
+    slug: zuru
+    platform: lever
+    website: ""
+    industry: AI/ML
+  - name: d-Matrix
+    slug: d-Matrix
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: edmentum
+    slug: edmentum
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: ezCater
+    slug: ezcaterinc
+    platform: greenhouse
+    website: ""
+    industry: AI/ML
+  - name: m13
+    slug: m13
+    platform: ashby
+    website: ""
+    industry: AI/ML
+  - name: zaimler
+    slug: zaimler
+    platform: lever
+    website: ""
+    industry: AI/ML

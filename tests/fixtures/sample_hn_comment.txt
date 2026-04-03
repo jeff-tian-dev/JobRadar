@@ -1,0 +1,16 @@
+Acme Robotics | Senior Backend Engineer, Staff ML Engineer | San Francisco, CA / Remote | Full-time | https://acmerobotics.com
+
+We're building autonomous warehouse robots that are already deployed at Fortune 500 companies. Series B, 120 employees, profitable unit economics.
+
+What we're working on:
+- Fleet management system (Go, Kubernetes, gRPC)
+- Real-time motion planning (C++, ROS2)
+- ML pipeline for object detection (Python, PyTorch)
+
+Who we're looking for:
+- Senior Backend Engineer: 5+ years experience, strong Go or Rust, distributed systems
+- Staff ML Engineer: experience shipping ML models to production, robotics a plus
+
+We offer competitive comp ($180k-$240k + equity), full remote for most roles, and a genuine chance to work on hard problems.
+
+Apply at https://acmerobotics.com/careers or email jobs@acmerobotics.com

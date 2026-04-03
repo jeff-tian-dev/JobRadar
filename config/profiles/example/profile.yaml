@@ -1,0 +1,31 @@
+# Template — copy to config/profiles/<your_id>/profile.yaml and customize.
+name: Example Candidate
+
+summary: |
+  One-paragraph summary for the LLM scorer.
+
+skills:
+  expert: []
+  proficient: []
+  familiar: []
+
+experience_years: 0
+
+education: []
+
+preferences:
+  target_titles: []
+  salary_floor: 0
+  salary_currency: CAD
+  locations: []
+  remote_preference: remote_preferred
+  company_size_preference: any
+  industries_preferred: []
+  deal_breakers: []
+
+scoring_weights:
+  fit: 0.40
+  preference: 0.35
+  competitiveness: 0.25
+
+alert_threshold: 78

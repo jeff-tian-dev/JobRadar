@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Linear Jobs</title>
+  <link href="https://jobs.ashby.io/linear"/>
+  <updated>2025-01-01T00:00:00Z</updated>
+  <entry>
+    <title>Software Engineer, Core Product</title>
+    <link href="https://jobs.ashby.io/linear/jobs/eng-core-001"/>
+    <id>urn:ashby:linear:eng-core-001</id>
+    <updated>2025-01-01T00:00:00Z</updated>
+    <summary><![CDATA[<p>Linear is looking for a Software Engineer to work on our core product. You'll help shape the future of project management tools used by thousands of engineering teams.</p><p>Location: San Francisco, CA or Remote</p><ul><li>3+ years of software engineering experience</li><li>Experience with TypeScript and React</li><li>Product-minded with strong UX sensibility</li></ul>]]></summary>
+  </entry>
+  <entry>
+    <title>Staff Engineer, Backend</title>
+    <link href="https://jobs.ashby.io/linear/jobs/eng-backend-002"/>
+    <id>urn:ashby:linear:eng-backend-002</id>
+    <updated>2025-01-02T00:00:00Z</updated>
+    <summary><![CDATA[<p>Join Linear as a Staff Engineer focused on backend systems. You'll architect scalable solutions for our growing customer base.</p><p>Location: Remote</p><ul><li>7+ years of experience</li><li>Strong Node.js/PostgreSQL skills</li><li>Experience with real-time systems</li></ul>]]></summary>
+  </entry>
+</feed>

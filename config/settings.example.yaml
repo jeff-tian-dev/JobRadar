@@ -1,0 +1,88 @@
+# Template / documentation for JobRadar settings.
+#
+# Your real config is **config/settings.yaml** (create it by copying this file). That file is
+# gitignored so secrets and machine-specific values are not committed. Edit **settings.yaml** to
+# change behavior; edit this file when you want to document new options for the repo.
+#
+# Optional keys must be real YAML lines in settings.yaml — a line that starts with # is only a
+# comment and is NOT loaded.
+
+active_profile: jeff
+profiles_dir: config/profiles
+db_path: db/jobs.db
+# Optional: Word template for tailoring (layout/slots only; content comes from experience dossier).
+# resume_template_docx: config/profiles/jeff/jeff resume template.docx
+# Legacy alias: resume_docx (same resolution order: resume_template_docx first, then resume_docx).
+# If both unset: tries profiles/<active_profile>/jeff resume template.docx, then Jeff Tian Resume.docx.
+#
+# Optional: experience dossier markdown (repo-relative or absolute). Default:
+# profiles/<active_profile>/experience-dossier.md
+# experience_dossier: config/profiles/jeff/experience-dossier.md
+
+ollama_model: qwen3:14b
+# Optional: use a different model only for resume tailoring + one-page compress (defaults to ollama_model).
+# ollama_tailor_model: qwen3:32b
+ollama_timeout_seconds: 30
+# Resume tailoring (dashboard "Tailor resume"): optional overrides; omit any key to use code defaults.
+# num_predict: output token budget for JSON; if tailoring fails with truncated JSON, raise this or rely on
+# automatic retries (code escalates up to ollama_tailor_num_predict_max).
+ollama_tailor_timeout_seconds: 180
+# Lower = more consistent bullet length/style (0.2–0.35 typical). Higher = more variation run-to-run.
+ollama_tailor_temperature: 0.28
+ollama_tailor_num_predict: 24576
+# Cap for escalation retries (default 65536). Lower on small models if needed.
+# ollama_tailor_num_predict_max: 65536
+# Optional: larger context window for big dossier + JD (model-dependent).
+# ollama_tailor_num_ctx: 32768
+ollama_host: http://127.0.0.1:11434
+# PDF export from the tailor preview uses LibreOffice headless (brew install --cask libreoffice).
+#
+# One-page resume (after tailor): convert to PDF, count pages with pypdf; if >1, run a compress LLM pass.
+tailor_enforce_one_page: true
+tailor_one_page_max_trim_attempts: 5
+# LibreOffice timeout (seconds) for each PDF used to count pages during tailoring.
+# tailor_pdf_convert_timeout_seconds: 120
+# Optional: token budget for the compress pass (omit to derive from ollama_tailor_num_predict).
+# ollama_tailor_fit_one_page_num_predict: 12288
+# Optional: sampling temperature for compress pass (omit = min(0.25, ollama_tailor_temperature)).
+# ollama_tailor_fit_one_page_temperature: 0.2
+#
+# Tailor API responses include ollama_metrics (runs + summary: tokens, wall seconds, tok/s). Same for
+# POST /api/tailor/rebuild when one-page trim runs. Persisted logs: ~/Library/Logs/job-search-agent/ollama_metrics.log
+# (per-call "Ollama metrics: ..." lines + JSON "Tailor session ollama summary: {...}" after each tailor).
+
+# Skip feed listings when posted date parses and is strictly older than this many days.
+# null = disable (keep listings with unknown or missing posted dates).
+max_listing_age_days: 7
+
+# RSS feed monitor settings
+feeds:
+  fetch_timeout_seconds: 30     # Per-feed HTTP timeout
+  max_consecutive_failures: 5   # Mark feed 'broken' after this many failures
+  broken_recheck_days: 30       # (informational) how often to retry broken feeds
+
+# Company discovery settings
+discovery:
+  enabled: true
+  relevance_threshold: 40       # Minimum LLM relevance score (0-100) to add company
+  max_companies_per_source: 100 # Cap per discovery run
+  sources:
+    seed: true
+    hn_hiring: true
+    yc: true
+    github_trending: false
+    wellfound: false
+
+# Per-profile alerting (nested so multiple users do not share channels)
+profiles:
+  jeff:
+    ntfy_topic: null # e.g. my-secret-topic-name → https://ntfy.sh/{topic}
+    slack_webhook_url: null
+    smtp_enabled: false
+    smtp_host: smtp.gmail.com
+    smtp_port: 587
+    smtp_user: null
+    smtp_password: null
+    smtp_from: null
+    smtp_to: null
+    smtp_use_tls: true

@@ -1,0 +1,24 @@
+You will receive a comment from a Hacker News "Ask HN: Who is Hiring?" thread. Each top-level comment is typically a company posting open positions.
+
+Extract the following information and return ONLY valid JSON, no markdown fences, no extra text:
+
+{
+  "company_name": "<string — the company or team name>",
+  "website": "<string URL or null>",
+  "location": "<string e.g. 'San Francisco, CA' or 'Remote' or null>",
+  "remote": <true | false | null>,
+  "roles_mentioned": ["<job title>", ...],
+  "description": "<one sentence about what the company does>",
+  "skip": false
+}
+
+If the comment is NOT a job posting (e.g., it is a reply, a meta-comment, or off-topic), return:
+{"skip": true}
+
+Rules:
+- Extract the company name exactly as it appears (don't abbreviate or expand)
+- If the website is mentioned inline (e.g. "acme.com" or "https://acme.com"), include it
+- For location: if "REMOTE" or "remote" appears, set remote=true
+- roles_mentioned: list the actual job titles mentioned (e.g. "Senior Backend Engineer", "ML Engineer")
+- description: a single sentence describing what the company builds or does
+- Do not invent information; if something is not mentioned, use null

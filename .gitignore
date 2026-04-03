@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+.Python
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# macOS / local tooling
+.DS_Store
+.claude/
+
+# Secrets and local settings
+config/settings.yaml
+.env
+
+# Local SQLite (schema lives in db/*.sql)
+db/jobs.db
+
+# JavaScript — install with npm ci in dashboard/frontend
+node_modules/
+
+# Structured resume source with contact info; use profile + dossier in-repo instead
+Jeff_Tian_Resume.yaml
