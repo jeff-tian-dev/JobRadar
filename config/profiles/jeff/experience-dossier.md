@@ -19,7 +19,7 @@ Tools & Technologies: PostgreSQL, SQLite, Docker, Linux, macOS, Git, REST APIs, 
 
 ---
 
-## AutoLoot
+## VisionLoop
 
 Date: Sept 2025 to present
 
@@ -34,19 +34,19 @@ Date: Sept 2025 to present
 Personal project.
 
 ### One-line summary
-Windows desktop bot that automates repetitive Clash of Clans farming loops using computer-vision template matching and Win32 message-based input.
+Windows desktop automation engine that drives a target application through configurable timed loops via an OpenCV template-matching vision pipeline, Win32 message-based input simulation, and a daemon-threaded control architecture with local LLM integration.
 
 ### Problem / goal
-Eliminate repetitive manual clicking through identical attack–end–home cycles in the PC version of Clash of Clans, letting the user step away while the bot farms resources on a timed or star-bonus-capped schedule.
+Automate high-frequency, repetitive UI interaction cycles in a Windows desktop application — replacing manual clicking through identical state-machine sequences with a reliable, resumable automation engine the user can leave running unattended on a configurable schedule.
 
 ### What I built / did
-- Designed and implemented the core farming loop: timed runs with configurable presets (5/10/15/20 min), a 900-second star-bonus hard cap, automatic home-screen recovery, and a cooperative stop mechanism using threading events.
-- Built a vision pipeline using OpenCV template matching with bottom-half ROI cropping and confidence thresholds to detect in-game buttons and the star-bonus icon, driving all bot decisions.
-- Wrote a Win32 window-management layer that finds the game client’s child window handle, calls DPI-aware APIs, and captures frames via PrintWindow — no global cursor dependency.
+- Designed and implemented the core automation loop: timed runs with configurable presets (5/10/15/20 min), a 900-second session hard cap, automatic home-screen recovery, and a cooperative stop mechanism using threading events.
+- Built a vision pipeline using OpenCV template matching with bottom-half ROI cropping and confidence thresholds to detect target UI elements and session-state indicators, driving all control decisions.
+- Wrote a Win32 window-management layer that finds the target application’s child window handle, calls DPI-aware APIs, and captures frames via PrintWindow — no global cursor dependency.
 - Implemented input simulation through SendMessage for clicks and drags, with Bezier-curve mouse movement and stop-event polling between steps for responsive cancellation.
-- Created a CustomTkinter GUI that launches the bot on a daemon thread and uses tkinter after-idle polling for live status updates, with an optional DWM taskbar-thumbnail overlay.
+- Created a CustomTkinter GUI that launches the controller on a daemon thread and uses tkinter after-idle polling for live status updates, with an optional DWM taskbar-thumbnail overlay.
 - Centralized coordinate resolution through a singleton config backed by JSON data and screen-size adaptation via pyautogui.
-- Integrated a locally hosted LLaMA model to improve in-game decision stability during the automation loop.
+- Integrated a locally hosted LLaMA model to improve decision stability during ambiguous vision-pipeline states in the automation loop.
 
 ### Stack & tools
 Python 3.8+, OpenCV (template matching), NumPy, Pillow, CustomTkinter, PyInstaller, pyautogui, Win32 API (SendMessage, PrintWindow, HWND management), JSON configuration, LLaMA (local inference), threading, rotating file logging
