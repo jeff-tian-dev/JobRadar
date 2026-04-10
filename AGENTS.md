@@ -1,194 +1,76 @@
-# AGENTS.md
-
-## Project overview
-
-Automated job search pipeline running 24/7 on a Mac Studio (M4 Max, 32GB). Monitors RSS/Atom feeds from Greenhouse, Lever, Ashby, and Workable ATS platforms, discovers new companies automatically via YC, HN, and GitHub, scores each listing with a local LLM via ollama, stores ranked results in SQLite, serves a Streamlit dashboard, and sends push alerts for high-scoring matches. Zero API costs — everything runs locally.
-
-Two loops:
-- **Feed monitor** (`feeds/`) — runs every 3 hours, fetches active RSS feeds → dedup → score → alert
-- **Discovery bot** (`discovery/`) — runs daily, finds new companies → resolves their ATS feed URLs → adds to DB
-
-## Tech stack
-
-- **Language**: Python 3.12
-- **Feed fetching**: httpx (async HTTP), feedparser (RSS/Atom XML parsing)
-- **LLM inference**: ollama with qwen3:14b, accessed via the `ollama` Python package
-- **Database**: SQLite (single file at `db/jobs.db`)
-- **Dashboard**: Streamlit
-- **Alerting**: ntfy.sh (HTTP POST), Slack incoming webhooks, smtplib
-- **Scheduling**: macOS launchd (not cron)
-- **Config format**: YAML (PyYAML)
-- **Testing**: pytest + pytest-asyncio
-
-## Project structure
+# JobRadar — agent/component map (code-derived)
 
 ```
-JobRadar/
-├── config/
-│   ├── settings.example.yaml   # Committed template (no secrets)
-│   ├── settings.yaml           # Gitignored — model, db_path, active_profile, per-profile alert secrets
-│   ├── seed_companies.yaml     # Manually curated starting companies; processed by discovery/sources/seed.py
-│   └── profiles/
-│       ├── jeff/profile.yaml   # Scorer-facing profile (skills, preferences, weights, alert_threshold)
-│       └── example/profile.yaml
-├── feeds/
-│   ├── monitor.py              # Fetches all active RSS feeds → list[RawListing]
-│   ├── resolver.py             # Given company slug, detects ATS platform, verifies feed URL
-│   └── parser.py               # Parses RSS/Atom XML into FeedEntry objects
-├── discovery/
-│   ├── runner.py               # Orchestrates all discovery sources
-│   ├── relevance.py            # LLM-based company relevance pre-filter
-│   └── sources/
-│       ├── seed.py             # Processes config/seed_companies.yaml
-│       ├── hn_hiring.py        # HN "Who's Hiring" thread parser (LLM-assisted)
-│       ├── yc.py               # Y Combinator company directory
-│       ├── github_trending.py  # GitHub trending orgs
-│       └── wellfound.py        # Wellfound/AngelList (currently skipped; requires auth)
-├── pipeline/
-│   ├── models.py               # RawListing dataclass, fetch_url_with_retry, polite_delay
-│   ├── config_paths.py         # Settings load, profile id resolution (CLI > env > settings)
-│   ├── db.py                   # SQLite helpers for listings table
-│   ├── company_db.py           # SQLite helpers for companies and discovery_runs tables
-│   ├── dedup.py                # Hash-based deduplication (title+company+city)
-│   ├── normalizer.py           # Parse salaries, locations, dates into structured formats
-│   ├── scorer.py               # Calls ollama, parses JSON scores, computes weighted overall
-│   └── alerter.py              # Sends ntfy.sh / Slack / email notifications
-├── prompts/
-│   ├── scoring_system.txt      # System prompt for LLM scorer (do not modify without testing)
-│   ├── scoring_user.txt        # User prompt template with {{profile}} and {{listing}} slots
-│   ├── hn_parser.txt           # System prompt for parsing HN hiring comments → JSON
-│   └── relevance_filter.txt    # System prompt for company relevance pre-filter → JSON
-├── dashboard/
-│   └── app.py                  # Streamlit app on localhost:8501 (Listings + Companies tabs)
-├── db/
-│   ├── schema.sql              # listings table schema
-│   └── migrations/
-│       └── 001_add_companies.sql  # companies, discovery_runs tables; company_id FK on listings
-├── scripts/
-│   ├── setup.sh                # One-shot install (brew, ollama, pip, db init)
-│   ├── bootstrap_all.sh        # Automated full setup
-│   ├── run_pipeline.py         # Main entry point — fetch feeds → dedup → score → alert
-│   ├── run_discovery.py        # Discovery entry point — find companies → resolve feeds
-│   └── install_launchd.sh      # Generates and loads the launchd plists
-├── tests/
-│   ├── test_scorer.py
-│   ├── test_dedup.py
-│   ├── test_normalizer.py
-│   ├── test_config_paths.py
-│   ├── test_company_db.py
-│   ├── test_feed_parser.py
-│   ├── test_feed_resolver.py
-│   ├── test_feed_monitor.py
-│   ├── test_discovery.py
-│   └── fixtures/               # RSS XML samples, HN comment samples for testing
-├── requirements.txt
-├── pyproject.toml
-└── README.md
+config/settings.yaml + config/profiles/<id>/profile.yaml
+  → scripts/run_pipeline.py
+      → feeds/monitor.fetch_all_active_feeds → list[RawListing]
+      → filters (title_keywords ∧ entry_level_terms ∧ seniority_exclude ∧ toronto_terms ∧ max_listing_age_days)
+      → pipeline/dedup.listing_dedup_hash → pipeline/db.upsert_listing_after_scrape
+      → pipeline/scorer.score_listing (ollama) → pipeline/db.update_scores
+      → pipeline/alerter.maybe_alert_listing + send_daily_email_digest_if_enabled
+
+scripts/run_discovery.py → discovery/runner.run_discovery
+  → discovery/sources/{seed,hn_hiring,yc,github,wellfound}.discover_from_*
+      → feeds/resolver.try_resolve_feed / verify_feed_url / (YC) FEED_URL_PATTERNS probe
+      → pipeline/company_db.upsert_company, insert_discovery_run, finish_discovery_run
+
+dashboard/api.py (FastAPI lifespan)
+  → CRUD listings/companies; POST rescore → pipeline/scorer.score_listing
+  → POST tailor-* → pipeline/resume_tailor.tailor_resume / rebuild_docx_from_edits
+  → POST companies/discover → asyncio.run(discovery/sources/seed.discover_from_seed) only
 ```
 
-## Commands
+## Entry points
+| Path | Callable | Purpose |
+| --- | --- | --- |
+| scripts/run_pipeline.py | main() | Feed sweep → SQLite listings → score → alerts |
+| scripts/run_discovery.py | main() | Multi-source company ingest → companies + discovery_runs |
+| dashboard/api.py | app (uvicorn) | REST + static SPA; Ollama for rescore/tailor |
 
-```bash
-# One-shot machine setup (brew python@3.12 + ollama, venv, pip, DB, pytest)
-bash scripts/bootstrap_all.sh --no-model-pull   # skip large model download
-bash scripts/bootstrap_all.sh                   # includes: ollama pull qwen3:14b
-bash scripts/bootstrap_all.sh --launchd         # add: install launchd plists
+## Data schemas (behavioral)
+- **RawListing** (`pipeline/models.py`): source, source_url, title, company, location, description, salary_raw, posted_date, scraped_at, raw_html.
+- **Listing DB row** (`pipeline/db.py`): hash dedup; scores fit/pref/comp/overall + reasons; status; optional company_id — `feeds/monitor.fetch_all_active_feeds` never attaches company_id to `RawListing`, so `run_pipeline.raw_to_db_payload` leaves company_id None.
+- **ScoreResult** (`pipeline/scorer.py`): fit_score, pref_score, comp_score (0–100 int), reasons, overall_score=float from weighted_overall(profile scoring_weights).
+- **TailorPreviewResult** → API dict (`tailor_result_to_api_dict`): filename, docx_base64, original, tailored, explanation, ollama_metrics.
+- **ResolvedFeed** (`feeds/resolver.py`): platform, url, status, entry_count.
 
-# Discover companies from seed list (first run, before pipeline)
-python scripts/run_discovery.py --sources seed --verbose --profile jeff
+## LLM call sites
+| Function | File | Model | Prompts | Client opts | Output |
+| --- | --- | --- | --- | --- | --- |
+| score_listing | pipeline/scorer.py | ollama_model | prompts/scoring_system.txt + prompts/scoring_user.txt | host, ollama_timeout_seconds | JSON scores; 1× retry on parse fail |
+| _parse_comment_with_llm | discovery/sources/hn_hiring.py | ollama_model | prompts/hn_parser.txt | host only (no Client timeout) | JSON fields or skip |
+| call_tailor_llm | pipeline/resume_tailor.py | ollama_tailor_model \|\| ollama_model | prompts/resume_tailor.txt + prompts/resume_tailor_user.txt | ollama_tailor_* | JSON tailor blob |
+| call_tailor_fit_one_page_llm | pipeline/resume_tailor.py | same | prompts/resume_tailor_fit_one_page.txt + prompts/resume_tailor_fit_one_page_user.txt | one-page trim loop | JSON trim |
+| score_company_relevance | discovery/relevance.py | ollama_model | prompts/relevance_filter.txt | host only | JSON score/reason; used via should_skip_company_for_relevance (hn/yc/github) |
 
-# Run all discovery sources
-python scripts/run_discovery.py --verbose --profile jeff
+**Ollama options**: temperature 0.1 (scorer/HN/relevance); tailor uses ollama_tailor_temperature; repeat_penalty `read_ollama_repeat_penalty(settings)` (`pipeline/config_paths.py`). **Metrics**: `log_ollama_metrics` / `log_tailor_session_ollama_summary` → `~/Library/Logs/job-search-agent/ollama_metrics.log`.
 
-# Run the feed pipeline once (fetch feeds, dedup, score, alert)
-python scripts/run_pipeline.py
-python scripts/run_pipeline.py --verbose --profile jeff
+## HTTP/tools (non-Ollama)
+- **feeds/monitor.py**: httpx GET feeds; Greenhouse detail API via `greenhouse_job_detail_api_url`; updates `companies` via `update_feed_success`, `increment_feed_failures`, `update_feed_status` (broken after max_consecutive_failures).
+- **hn_hiring**: Algolia `hn.algolia.com`, Firebase `hacker-news.firebaseio.com`.
+- **yc.py**: `yc-oss.github.io/api/companies/all.json`; probes greenhouse/lever/ashby URLs from `FEED_URL_PATTERNS`.
+- **github_trending.py**: github.com/trending HTML scrape + `api.github.com/orgs/{org}`.
+- **wellfound.py**: no HTTP; logs skip, finish_discovery_run completed with error message.
+- **alerter.py**: httpx POST ntfy.sh, Slack webhook; smtplib digest.
+- **dashboard**: httpx in add_company for `try_resolve_feed`; PDF via `dashboard/pdf_convert.docx_bytes_to_pdf` (LibreOffice); tailor one-page uses `pipeline/pdf_convert` + `pipeline/pdf_pages.count_pdf_pages`.
+- **rebuild_docx_from_edits** (`pipeline/resume_tailor.py`): no initial tailor LLM; if `tailor_enforce_one_page` and soffice present, same PDF loop + `call_tailor_fit_one_page_llm` as tailor flow.
 
-# Run tests
-pytest tests/ -v
+## Config keys (consumed in code)
+`active_profile`, `profiles_dir`, `db_path`, `ollama_model`, `ollama_host`, `ollama_timeout_seconds`, `ollama_repeat_penalty`, `ollama_tailor_model`, `ollama_tailor_timeout_seconds`, `ollama_tailor_temperature`, `ollama_tailor_num_predict`, `ollama_tailor_num_predict_max`, `ollama_tailor_num_ctx`, `ollama_tailor_think`, `ollama_tailor_fit_one_page_num_predict`, `ollama_tailor_fit_one_page_temperature`, `tailor_enforce_one_page`, `tailor_one_page_max_trim_attempts`, `tailor_pdf_convert_timeout_seconds`, `resume_template_docx`, `resume_docx`, `experience_dossier`, `max_listing_age_days`, `title_keywords`, `entry_level_terms`, `toronto_terms`, `seniority_exclude`, `feeds.fetch_timeout_seconds`, `feeds.max_consecutive_failures`, `discovery.enabled`, `discovery.relevance_threshold`, `discovery.max_companies_per_source`, `discovery.sources.{seed,hn_hiring,yc,github,wellfound}` (plus legacy `github_trending` → github), `discovery.yc_concurrency`, `profiles.<id>.{ntfy_topic,slack_webhook_url,smtp_*}`. **Profile YAML** (`load_profile_for_scoring`): scoring_weights, alert_threshold, plus tailor reads `name` via `load_full_name_for_profile`.
 
-# Start the dashboard
-streamlit run dashboard/app.py
+**Resolver**: `feeds/resolver.try_resolve_feed_with_website_fallback` calls `detect_platform_from_careers_page` when slug-only resolution fails (seed, hn_hiring, github). **Discovery settings helpers**: `discovery/settings.py` (`discovery_enabled`, `max_companies_per_source`, `enabled_discovery_sources`).
 
-# Initialize or reset the database
-sqlite3 db/jobs.db < db/schema.sql
+## Env
+- `JOB_SEARCH_PROFILE`: `effective_profile_id` after CLI `--profile` (`pipeline/config_paths.py`).
+- `JOB_SEARCH_PROFILE_DASHBOARD`: dashboard lifespan only (`dashboard/api.py` → `effective_profile_id`).
 
-# Pull the scoring model (first-time setup)
-ollama pull qwen3:14b
+## Shared state & side effects
+- **SQLite** `db_path`: `listings`, `companies`, `discovery_runs`; `connect()` runs `ensure_schema` (db/schema.sql + db/migrations/*.sql) each open.
+- **Logs**: `~/Library/Logs/job-search-agent/pipeline.log`, `discovery.log`, `ollama_metrics.log`.
+- **Secrets**: `settings.yaml` profiles.* (webhooks, SMTP, ntfy topic).
 
-# Install the launchd schedules (3h pipeline + daily discovery)
-bash scripts/install_launchd.sh
-```
-
-## Code style
-
-- Use Python type hints on all function signatures and return types.
-- Use dataclasses for structured data (e.g., `RawListing`, `FeedEntry`). No plain dicts for domain objects.
-- Async functions for all HTTP/feed fetching code (httpx is async).
-- Sync functions for pipeline orchestration, database access, and alerting.
-- f-strings for string formatting, not `.format()` or `%`.
-- Use `logging` module throughout — never bare `print()` for operational output.
-- Docstrings on all public functions (one-line summary, no boilerplate).
-
-```python
-# ✅ Good
-async def fetch_feed(client: httpx.AsyncClient, company_row: sqlite3.Row) -> list[RawListing]:
-    """Fetch and parse one company's RSS feed into RawListing objects."""
-    ...
-
-# ❌ Bad
-def fetch(row, client):
-    print("fetching...")
-    ...
-```
-
-## Error handling pattern
-
-Every component must be independently failure-tolerant. One broken feed or one unparseable listing must never crash the pipeline.
-
-```python
-# ✅ Good — isolate failures, log, continue
-for company in companies:
-    try:
-        listings = await fetch_feed(client, company)
-    except Exception:
-        logger.exception("Feed fetch failed: %s", company["name"])
-        continue
-
-# ❌ Bad — one failure kills everything
-all_listings = [await fetch_feed(client, c) for c in companies]
-```
-
-## LLM scoring conventions
-
-- Call ollama with `format="json"` and `temperature=0.1`.
-- Timeout: 30 seconds per listing. On timeout, log and skip.
-- If JSON parsing fails, retry once. If it fails again, log the raw response and skip.
-- The three scores (fit, pref, comp) are integers 0–100. Validate this before storing.
-- Weighted overall score is computed in Python, not by the LLM: `overall = w1*fit + w2*pref + w3*comp`.
-- Scoring weights are read from the active `config/profiles/<id>/profile.yaml` (defaults: 0.40 / 0.35 / 0.25).
-- Never hardcode the model name — read it from `config/settings.yaml`.
-
-## Database conventions
-
-- Use parameterized queries everywhere. Never interpolate values into SQL strings.
-- Wrap batch inserts in a transaction.
-- The `hash` column in `listings` is the dedup key — always check for existence before inserting.
-- The `feed_url` column in `companies` is the uniqueness key for companies.
-- Status lifecycle for listings: `new` → `reviewing` → `applied` | `rejected` | `expired`.
-- Status lifecycle for feeds: `pending` → `active` | `broken` | `no_feed`.
-
-## Testing conventions
-
-- Test files mirror source files: `feeds/parser.py` → `tests/test_feed_parser.py`.
-- Use sample RSS XML in `tests/fixtures/` — never hit real websites in tests.
-- Mock httpx responses and ollama responses in all tests — no real HTTP or LLM calls.
-- For async tests, pytest-asyncio is configured with `asyncio_mode = "auto"` in pyproject.toml.
-- Scorer tests: assert valid JSON output, scores are ints 0–100, overall calculation is correct.
-- Dedup tests: identical listings produce same hash, minor variations (casing, whitespace) also match.
-
-## Boundaries
-
-- ✅ **Always**: Run `pytest tests/ -v` after changes and confirm all tests pass before considering work complete. Read the active `config/profiles/<id>/profile.yaml` for user preferences — never hardcode skills, salaries, or deal-breakers.
-- ⚠️ **Ask first**: Before changing the SQLite schema, the LLM scoring prompts in `prompts/`, or the launchd plist schedule.
-- 🚫 **Never**: Store credentials in code — all secrets (Slack webhook URLs, SMTP passwords, ntfy topic names) go in `config/settings.yaml` which is gitignored. Never modify profile YAML programmatically — profiles under `config/profiles/` are user-edited only. Never remove a test because it is failing.
+## Failure modes
+- Ollama down/timeout → scorer returns None (listing unscored); HN comment skipped; tailor HTTP 502 with detail dict; relevance LLM failure → score 50 (may still pass threshold).
+- Per-feed errors isolated in monitor; broken feed stops pipeline ingestion for that company.
+- Tailor: missing `experience-dossier.md` or resume docx → error string; one-page trim skipped if LibreOffice missing (`find_soffice` None).
+- JSON/schema validation failures after retries → skip or API error.

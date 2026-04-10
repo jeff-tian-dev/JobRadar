@@ -62,9 +62,17 @@ python scripts/run_pipeline.py --profile jeff
 # 3. Open dashboard (React + FastAPI — see repo README)
 bash scripts/dev.sh
 # → http://localhost:5173 (API proxied via Vite)
-
-# Remote machine (e.g. Windows on same network or via Tailscale): SSH tunnel — see [remote-access.md](remote-access.md)
 ```
+
+### Dashboard from another PC (SSH tunnel)
+
+With `dev.sh` running on the Mac, open a tunnel from the other machine (e.g. Windows PowerShell or Command Prompt), then browse **http://127.0.0.1:5173** on that machine. Leave the SSH session open while you use the UI.
+
+```text
+ssh -N -L 5173:127.0.0.1:5173 jefftian@100.112.50.147
+```
+
+(`100.112.50.147` is a Tailscale address here; same-LAN IP or hostname work if reachable. General patterns and troubleshooting: [remote-access.md](remote-access.md).)
 
 ### Ongoing (automated via launchd after setup)
 
@@ -97,7 +105,7 @@ python scripts/run_pipeline.py --profile jeff
 | Verbose pipeline | `python scripts/run_pipeline.py --verbose --profile jeff` |
 | Run tests | `pytest tests/ -v` |
 | Dashboard (dev) | `bash scripts/dev.sh` → http://localhost:5173 |
-| Dashboard (remote) | [remote-access.md](remote-access.md) — SSH tunnel from your other PC |
+| Dashboard (remote) | SSH tunnel example in §3; full guide [remote-access.md](remote-access.md) |
 | Install launchd schedules | `bash scripts/install_launchd.sh` |
 | Pipeline logs | `~/Library/Logs/job-search-agent/pipeline.log` |
 | Check scheduled jobs | `launchctl list \| grep jobsearch` |
@@ -207,7 +215,7 @@ The dashboard **Tailor resume** action fills your Word template from the **exper
 | DB — listings | `pipeline/db.py`, `db/schema.sql` | Parameterised SQL only |
 | DB — companies | `pipeline/company_db.py` | upsert_company, feed status tracking |
 | Alerts | `pipeline/alerter.py` | ntfy, Slack, SMTP digest |
-| Dashboard | `dashboard/app.py` | Streamlit; Listings tab + Companies tab |
+| Dashboard | `bash scripts/dev.sh` → `dashboard/api.py` + `dashboard/frontend/` | React + FastAPI; Listings + Companies + résumé tailor |
 
 ---
 

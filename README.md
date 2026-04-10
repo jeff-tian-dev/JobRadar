@@ -17,7 +17,7 @@ JobRadar monitors RSS/Atom feeds from Greenhouse, Lever, Ashby, and Workable, di
 | **React dashboard** | Filter, sort, update status, re-score listings, JD-based résumé tailoring with optional DOCX/PDF output |
 | **Push alerts** | ntfy.sh, Slack webhook, or SMTP email digest — fires only above your configured score threshold |
 | **launchd scheduling** | Feed pipeline every 3 hours, discovery daily — no cron, no cloud, no fees |
-| **109-test suite** | Full pytest coverage across every pipeline module |
+| **pytest suite** | Full coverage across pipeline, feeds, discovery, scorer, tailor |
 
 ---
 

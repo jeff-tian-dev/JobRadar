@@ -13,11 +13,12 @@ JobRadar/
 ├── config/
 │   ├── settings.example.yaml   # Template; copy to settings.yaml (gitignored)
 │   ├── settings.yaml           # Local: model, db_path, active_profile, alert secrets
-│   ├── sources.yaml            # Global scraper toggles, queries, career page entries
+│   ├── seed_companies.yaml      # Curated companies for discovery source seed
 │   └── profiles/
 │       ├── jeff/profile.yaml   # Scorer profile (skills, preferences, weights, alert_threshold)
 │       └── example/profile.yaml
-├── scrapers/                   # Async scrapers; RawListing output
+├── feeds/                       # RSS/ATS feed fetch + resolver (RawListing)
+├── discovery/                 # Company discovery sources (YC, HN, seed, …)
 ├── pipeline/                   # Dedup, normalize, DB, scorer, alerter, config_paths
 ├── prompts/                    # LLM system + user templates
 ├── dashboard/
@@ -40,12 +41,12 @@ JobRadar/
 ```mermaid
 flowchart LR
   subgraph inputs [Inputs]
-    SRC[sources.yaml]
+    CMP[companies table active feeds]
     PROF[profiles id profile.yaml]
     SET[settings.yaml]
   end
   subgraph run [run_pipeline.py]
-    SC[Scrapers]
+    SC[feeds monitor]
     DN[Dedup + Normalizer]
     LLM[Ollama scorer]
     DB[(SQLite db_path)]
@@ -55,7 +56,7 @@ flowchart LR
     API[FastAPI api.py]
     FE[React frontend]
   end
-  SRC --> SC
+  CMP --> SC
   SET --> SC
   SET --> LLM
   PROF --> LLM
@@ -70,7 +71,7 @@ flowchart LR
 ```
 
 1. **`run_pipeline.py`** loads **settings** and the active **profile** (see below).
-2. **Scrapers** read **`config/sources.yaml`** and return **`RawListing`** objects.
+2. **`feeds/monitor.py`** loads **active company feeds** from SQLite and returns **`RawListing`** objects.
 3. **Dedup** hashes title + company + city (with fallback); skips rescoring if the same hash was scored within **7 days**. Separately, **`max_listing_age_days`** in settings (default **7**) drops scraper rows whose **posted** date parses and is **strictly older** than that; missing/unparseable posted dates are kept.
 4. **Normalizer** fills salary, location, remote, posted date fields for storage and prompts.
 5. **Scorer** calls Ollama with **`prompts/scoring_*.txt`** and the profile YAML; writes fit/pref/comp + **weighted overall** (weights from profile).

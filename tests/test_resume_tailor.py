@@ -54,6 +54,103 @@ def minimal_docx_path(tmp_path: Path) -> Path:
     return p
 
 
+def test_extract_heading_includes_plain_subtitle_before_date(tmp_path: Path) -> None:
+    """Plain `` — Subtitle`` between bold name and date must be part of heading, not mistaken for date."""
+    from xml.etree import ElementTree as ET
+
+    parts = dict(MINIMAL_PARTS)
+    parts["word/document.xml"] = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:body>
+<w:p><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t>JobRadar</w:t></w:r><w:r><w:t> - Template Subtitle</w:t></w:r><w:r><w:t>Jan 2024 - Present</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>First bullet line</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>Second bullet line</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>Third bullet line</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>Fourth bullet line</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Languages: </w:t></w:r><w:r><w:t>Python</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Frameworks &amp; Libraries: </w:t></w:r><w:r><w:t>Flask</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Tools &amp; Technologies: </w:t></w:r><w:r><w:t>Git</w:t></w:r></w:p>
+</w:body>
+</w:document>""".encode("utf-8")
+    p = tmp_path / "sub.docx"
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as z:
+        for name, data in parts.items():
+            z.writestr(name, data)
+    p.write_bytes(buf.getvalue())
+    with zipfile.ZipFile(p, "r") as z:
+        root = ET.fromstring(z.read("word/document.xml").decode("utf-8"))
+    ext = rt.extract_resume_structure(root)
+    assert len(ext.projects) == 1
+    assert ext.projects[0].title_text == "JobRadar - Template Subtitle"
+    dr = ext.projects[0].date_run
+    assert dr is not None
+    assert "2024" in rt._run_text_content(dr)
+
+
+def test_rebuild_docx_clears_plain_subtitle_run_not_duplicate_heading(tmp_path: Path) -> None:
+    """Applying tailor JSON must not leave an old plain subtitle run next to the new bold full title."""
+    from xml.etree import ElementTree as ET
+
+    parts = dict(MINIMAL_PARTS)
+    parts["word/document.xml"] = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:body>
+<w:p><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t>JobRadar</w:t></w:r><w:r><w:t> - Old Subtitle</w:t></w:r><w:r><w:t>Jan 2024 - Present</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>First bullet line</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>Second bullet line</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>Third bullet line</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>Fourth bullet line</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Languages: </w:t></w:r><w:r><w:t>Python</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Frameworks &amp; Libraries: </w:t></w:r><w:r><w:t>Flask</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Tools &amp; Technologies: </w:t></w:r><w:r><w:t>Git</w:t></w:r></w:p>
+</w:body>
+</w:document>""".encode("utf-8")
+    p = tmp_path / "sub2.docx"
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as z:
+        for name, data in parts.items():
+            z.writestr(name, data)
+    p.write_bytes(buf.getvalue())
+    edited = {
+        "best_title": "Engineer",
+        "projects": [
+            {
+                "dossier_source": "JobRadar",
+                "name": "JobRadar",
+                "subtitle": "New Subtitle From LLM",
+                "date_range": "Jan 2024 - Present",
+                "technologies": "Python, SQLite",
+                "bullets": ["a", "b", "c", "d"],
+            }
+        ],
+        "skills": {
+            "Languages": "Rust, Python, Go, SQL",
+            "Frameworks & Libraries": "Tokio, Axum, FastAPI, React, Pandas, NumPy",
+            "Tools & Technologies": "Docker, Git, Linux, PostgreSQL, Kubernetes",
+        },
+    }
+    docx_bytes, _, _ = rt.rebuild_docx_from_edits(
+        edited,
+        "jeff",
+        "Someone Else",
+        settings={"resume_template_docx": str(p), "tailor_enforce_one_page": False},
+    )
+    with zipfile.ZipFile(io.BytesIO(docx_bytes), "r") as z:
+        root = ET.fromstring(z.read("word/document.xml").decode("utf-8"))
+    body = root.find("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}body")
+    assert body is not None
+    first_p = next(c for c in body if c.tag.endswith("}p"))
+    para_text = "".join(
+        (t.text or "")
+        for t in first_p.iter("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t")
+    )
+    assert "Old Subtitle" not in para_text
+    assert para_text.count("JobRadar") == 1
+    assert "New Subtitle From LLM" in para_text
+    assert "2024" in para_text
+
+
 def test_extract_and_preview_dict(minimal_docx_path: Path) -> None:
     import zipfile
     from xml.etree import ElementTree as ET
@@ -344,7 +441,7 @@ def test_parse_tailor_raw_clamps_then_validates() -> None:
             },
         }
     )
-    out, reason = rt._parse_tailor_raw(raw, 1, [4])
+    out, reason, _thinking = rt._parse_tailor_raw(raw, 1, [4])
     assert reason == ""
     assert out is not None
     assert rt._skill_line_item_count(out["skills"]["Frameworks & Libraries"]) == 7
@@ -794,8 +891,8 @@ def test_call_tailor_llm_substitutes_dossier_and_counts(monkeypatch: pytest.Monk
         def __init__(self, *args: object, **kwargs: object) -> None:
             pass
 
-        def chat(self, model: str, messages: list, format: str, options: dict) -> FakeResp:
-            captured["user"] = messages[1]["content"]
+        def chat(self, model: str = "", messages: list | None = None, format: str | None = None, options: dict | None = None, **kwargs: object) -> FakeResp:
+            captured["user"] = (messages or [{}, {}])[1]["content"]
             payload = {
                 "best_title": "Eng",
                 "job_analysis": "Analysis.",

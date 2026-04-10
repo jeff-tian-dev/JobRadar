@@ -9,7 +9,8 @@ from typing import Any
 
 import httpx
 
-from feeds.resolver import try_resolve_feed
+from discovery.relevance import should_skip_company_for_relevance
+from feeds.resolver import try_resolve_feed_with_website_fallback
 from pipeline.company_db import finish_discovery_run, insert_discovery_run, upsert_company
 
 logger = logging.getLogger(__name__)
@@ -53,7 +54,8 @@ async def _get_org_website(client: httpx.AsyncClient, org: str) -> str | None:
 async def discover_from_github(
     conn: sqlite3.Connection,
     settings: dict[str, Any],
-    max_companies: int = 30,
+    profile: dict[str, Any] | None = None,
+    max_companies: int | None = 30,
 ) -> int:
     """Fetch GitHub trending, extract orgs, resolve their ATS feeds.
 
@@ -84,31 +86,41 @@ async def discover_from_github(
 
         logger.info("Found %d trending repos on GitHub", len(repos))
         seen_orgs: set[str] = set()
+        eff_max = max_companies if max_companies is not None else len(repos)
 
-        for owner, repo in repos[:max_companies]:
+        for owner, repo in repos[:eff_max]:
             if owner in seen_orgs:
                 continue
             seen_orgs.add(owner)
-            found += 1
 
             website = await _get_org_website(client, owner)
+            desc = f"GitHub org behind trending repo: {owner}/{repo}"
+            if should_skip_company_for_relevance(owner, desc, None, profile, settings):
+                continue
+
+            found += 1
 
             slug_from_website = None
-            if website and "github.com" not in website:
-                m = re.search(r"https?://(?:www\.)?([^/]+)", website)
+            if website and "github.com" not in str(website):
+                m = re.search(r"https?://(?:www\.)?([^/]+)", str(website))
                 if m:
                     slug_from_website = m.group(1).split(".")[0]
 
             slug = slug_from_website or owner
-
-            resolved = await try_resolve_feed(client, slug, timeout=feed_timeout)
+            wstr = str(website).strip() if website else ""
+            resolved = await try_resolve_feed_with_website_fallback(
+                client,
+                slug,
+                website=wstr or None,
+                timeout=feed_timeout,
+            )
 
             record: dict[str, Any] = {
                 "name": owner,
                 "slug": slug,
                 "website": website,
                 "discovery_source": "github",
-                "description": f"GitHub org behind trending repo: {owner}/{repo}",
+                "description": desc,
             }
 
             if resolved and resolved.status == "ok":

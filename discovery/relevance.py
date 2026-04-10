@@ -8,7 +8,7 @@ from typing import Any
 
 import ollama
 
-from pipeline.config_paths import prompts_dir
+from pipeline.config_paths import prompts_dir, read_ollama_repeat_penalty
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,10 @@ def score_company_relevance(
                     {"role": "user", "content": user_message},
                 ],
                 format="json",
-                options={"temperature": 0.1},
+                options={
+                    "temperature": 0.1,
+                    "repeat_penalty": read_ollama_repeat_penalty(settings),
+                },
             )
             raw = response["message"]["content"]
             data = json.loads(raw)
@@ -85,3 +88,42 @@ def score_company_relevance(
                 logger.warning("Relevance scoring failed for %s: %s", company_name, e)
 
     return 50, "LLM unavailable"
+
+
+def should_skip_company_for_relevance(
+    company_name: str,
+    company_description: str | None,
+    industry: str | None,
+    profile: dict[str, Any] | None,
+    settings: dict[str, Any],
+) -> bool:
+    """Return True if the company should not be written (score below discovery.relevance_threshold).
+
+    No-op when profile is None or relevance_threshold is unset/invalid.
+    """
+    if profile is None:
+        return False
+    disc = settings.get("discovery")
+    if not isinstance(disc, dict) or "relevance_threshold" not in disc:
+        return False
+    try:
+        threshold = int(disc["relevance_threshold"])
+    except (TypeError, ValueError):
+        return False
+    score, reason = score_company_relevance(
+        company_name,
+        company_description,
+        industry,
+        profile,
+        settings,
+    )
+    if score < threshold:
+        logger.info(
+            "Skip company (relevance %s < %s): %s — %s",
+            score,
+            threshold,
+            company_name,
+            (reason or "")[:160],
+        )
+        return True
+    return False

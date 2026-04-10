@@ -12,7 +12,7 @@ from typing import Any
 import ollama
 import yaml
 
-from pipeline.config_paths import load_settings, prompts_dir
+from pipeline.config_paths import load_settings, prompts_dir, read_ollama_repeat_penalty
 from pipeline.models import log_ollama_metrics
 
 logger = logging.getLogger(__name__)
@@ -139,7 +139,10 @@ def score_listing(
                     {"role": "user", "content": user_prompt},
                 ],
                 format="json",
-                options={"temperature": 0.1},
+                options={
+                    "temperature": 0.1,
+                    "repeat_penalty": read_ollama_repeat_penalty(settings),
+                },
             )
         except Exception:
             logger.exception("Ollama request failed for listing: %s at %s", title, company)

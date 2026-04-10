@@ -11,6 +11,7 @@ import pytest
 
 from discovery.relevance import score_company_relevance
 from discovery.runner import run_discovery
+from discovery.settings import enabled_discovery_sources
 from discovery.sources.seed import discover_from_seed
 from pipeline.company_db import get_active_feed_companies, iter_companies
 
@@ -234,3 +235,26 @@ async def test_run_discovery_no_sources_returns_empty() -> None:
     settings = {"discovery": {"sources": {}}}
     results = await run_discovery(conn, settings, sources=None)
     assert results == {}
+
+
+@pytest.mark.asyncio
+async def test_run_discovery_disabled_returns_empty() -> None:
+    """discovery.enabled: false skips all sources (even if configured)."""
+    conn = _make_conn()
+    settings = {"discovery": {"enabled": False, "sources": {"seed": True}}}
+    with patch("discovery.runner.discover_from_seed", new_callable=AsyncMock) as mock_seed:
+        results = await run_discovery(conn, settings, sources=None)
+    mock_seed.assert_not_called()
+    assert results == {}
+
+
+def test_enabled_discovery_sources_github_trending_alias() -> None:
+    """Legacy settings key github_trending enables the github source."""
+    cfg = {"github_trending": True, "github": False, "seed": False}
+    assert enabled_discovery_sources(cfg) == ["github"]
+
+
+def test_enabled_discovery_sources_prefers_explicit_github() -> None:
+    cfg = {"github": True, "seed": True}
+    out = enabled_discovery_sources(cfg)
+    assert out == ["seed", "github"]

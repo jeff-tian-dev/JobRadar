@@ -8,7 +8,7 @@ from typing import Any
 
 import httpx
 
-from feeds.resolver import try_resolve_feed
+from feeds.resolver import try_resolve_feed, try_resolve_feed_with_website_fallback
 from pipeline.company_db import (
     finish_discovery_run,
     get_company_by_name,
@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 async def discover_from_seed(
     conn: sqlite3.Connection,
     settings: dict[str, Any] | None = None,
+    max_companies: int | None = None,
 ) -> int:
     """Import companies from seed_companies.yaml; resolve and verify their feeds.
 
@@ -33,6 +34,9 @@ async def discover_from_seed(
     if not seed_companies:
         logger.info("No seed companies found in config/seed_companies.yaml")
         return 0
+
+    if max_companies is not None:
+        seed_companies = seed_companies[:max_companies]
 
     logger.info("Processing %d seed companies", len(seed_companies))
     run_id = insert_discovery_run(conn, "seed")
@@ -55,8 +59,17 @@ async def discover_from_seed(
 
             found += 1
 
-            # Try to resolve the feed URL
-            resolved = await try_resolve_feed(client, slug, platform=platform, timeout=timeout)
+            website = company_data.get("website")
+            if isinstance(website, str) and website.strip():
+                resolved = await try_resolve_feed_with_website_fallback(
+                    client,
+                    slug,
+                    platform=platform,
+                    website=website.strip(),
+                    timeout=timeout,
+                )
+            else:
+                resolved = await try_resolve_feed(client, slug, platform=platform, timeout=timeout)
 
             record: dict[str, Any] = {
                 "name": name,

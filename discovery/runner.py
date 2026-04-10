@@ -6,7 +6,11 @@ import logging
 import sqlite3
 from typing import Any
 
-from discovery.relevance import score_company_relevance
+from discovery.settings import (
+    discovery_enabled,
+    enabled_discovery_sources,
+    max_companies_per_source,
+)
 from discovery.sources.github_trending import discover_from_github
 from discovery.sources.hn_hiring import discover_from_hn
 from discovery.sources.seed import discover_from_seed
@@ -14,8 +18,6 @@ from discovery.sources.wellfound import discover_from_wellfound
 from discovery.sources.yc import discover_from_yc
 
 logger = logging.getLogger(__name__)
-
-_ALL_SOURCES = ["seed", "hn_hiring", "yc", "github", "wellfound"]
 
 
 async def run_discovery(
@@ -36,11 +38,19 @@ async def run_discovery(
         Dict mapping source name → number of companies added with active feeds.
     """
     disc_cfg = settings.get("discovery", {})
-    source_cfg = disc_cfg.get("sources", {})
+    if isinstance(disc_cfg, dict) and not discovery_enabled(settings):
+        logger.info("Discovery disabled (discovery.enabled: false)")
+        return {}
+
+    source_cfg = disc_cfg.get("sources", {}) if isinstance(disc_cfg, dict) else {}
+    if not isinstance(source_cfg, dict):
+        source_cfg = {}
+
+    max_c = max_companies_per_source(settings)
 
     # Determine which sources to run
     if sources is None:
-        sources = [s for s in _ALL_SOURCES if source_cfg.get(s, False)]
+        sources = enabled_discovery_sources(source_cfg)
     if not sources:
         logger.info("No discovery sources enabled; add sources to settings.yaml discovery.sources")
         return {}
@@ -52,13 +62,19 @@ async def run_discovery(
         logger.info("=== Discovery source: %s ===", source)
         try:
             if source == "seed":
-                count = await discover_from_seed(conn, settings)
+                count = await discover_from_seed(conn, settings, max_companies=max_c)
             elif source == "hn_hiring":
-                count = await discover_from_hn(conn, settings)
+                count = await discover_from_hn(
+                    conn, settings, profile=profile, max_companies=max_c
+                )
             elif source == "yc":
-                count = await discover_from_yc(conn, settings)
+                count = await discover_from_yc(
+                    conn, settings, profile=profile, max_companies=max_c
+                )
             elif source == "github":
-                count = await discover_from_github(conn, settings)
+                count = await discover_from_github(
+                    conn, settings, profile=profile, max_companies=max_c
+                )
             elif source == "wellfound":
                 count = await discover_from_wellfound(conn, settings)
             else:

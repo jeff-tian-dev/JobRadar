@@ -23,6 +23,8 @@ ollama_model: qwen3:14b
 # Optional: use a different model only for resume tailoring + one-page compress (defaults to ollama_model).
 # ollama_tailor_model: qwen3:32b
 ollama_timeout_seconds: 30
+# Repeat penalty for all Ollama chat calls (scoring, discovery, tailoring). Omit for default 1.1.
+ollama_repeat_penalty: 1.1
 # Resume tailoring (dashboard "Tailor resume"): optional overrides; omit any key to use code defaults.
 # num_predict: output token budget for JSON; if tailoring fails with truncated JSON, raise this or rely on
 # automatic retries (code escalates up to ollama_tailor_num_predict_max).
@@ -34,6 +36,10 @@ ollama_tailor_num_predict: 24576
 # ollama_tailor_num_predict_max: 65536
 # Optional: larger context window for big dossier + JD (model-dependent).
 # ollama_tailor_num_ctx: 32768
+# Enable Ollama thinking mode for tailor LLM. Auto-detected: Qwen 3 models default to true
+# (model reasons through project scoring before emitting JSON; thinking logged to pipeline.log).
+# Other models default to false. Override to force either behavior.
+# ollama_tailor_think: true
 ollama_host: http://127.0.0.1:11434
 # PDF export from the tailor preview uses LibreOffice headless (brew install --cask libreoffice).
 #
@@ -63,14 +69,14 @@ feeds:
 
 # Company discovery settings
 discovery:
-  enabled: true
-  relevance_threshold: 40       # Minimum LLM relevance score (0-100) to add company
-  max_companies_per_source: 100 # Cap per discovery run
+  enabled: true                 # false: run_discovery no-ops (all sources)
+  relevance_threshold: 40       # Minimum LLM relevance score (0-100) to upsert (hn_hiring, yc, github); omit key to disable
+  max_companies_per_source: 100 # Cap per source; null = no cap
   sources:
     seed: true
     hn_hiring: true
     yc: true
-    github_trending: false
+    github: false                 # legacy alias: github_trending
     wellfound: false
 
 # Per-profile alerting (nested so multiple users do not share channels)

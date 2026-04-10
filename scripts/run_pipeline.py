@@ -203,6 +203,10 @@ def main() -> int:
                 log.debug("Skip (not entry-level): %s | %s", raw.title, raw.company)
                 continue
 
+            if _is_senior_title(raw.title, senior_excl):
+                log.debug("Skip (seniority filter): %s | %s", raw.title, raw.company)
+                continue
+
             if not _location_ok(raw.location, toronto_kws):
                 log.debug("Skip (location filter): %s | %s | loc=%r", raw.title, raw.company, raw.location)
                 continue

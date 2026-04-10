@@ -10,6 +10,7 @@ from typing import Any
 
 import httpx
 
+from discovery.relevance import should_skip_company_for_relevance
 from feeds.resolver import FEED_URL_PATTERNS, verify_feed_url
 
 _PROBE_PLATFORMS = ["greenhouse", "lever", "ashby"]
@@ -57,6 +58,7 @@ async def _check_any_platform(
 async def discover_from_yc(
     conn: sqlite3.Connection,
     settings: dict[str, Any],
+    profile: dict[str, Any] | None = None,
     max_companies: int | None = None,  # None = all ~5,600
 ) -> int:
     """Fetch all YC companies and concurrently probe their Greenhouse feeds.
@@ -102,13 +104,24 @@ async def discover_from_yc(
         slug = company.get("slug") or _slug_from_url(website or "")
         description = company.get("one_liner") or company.get("long_description") or None
         batch = company.get("batch") or None
+        industry = company.get("industry") or None
+        desc_display = f"[{batch}] {description or ''}" if batch else description
+
+        if should_skip_company_for_relevance(
+            name,
+            desc_display if isinstance(desc_display, str) else None,
+            industry if isinstance(industry, str) else None,
+            profile,
+            settings,
+        ):
+            continue
 
         record: dict[str, Any] = {
             "name": name,
             "slug": slug,
             "website": website,
-            "description": f"[{batch}] {description or ''}" if batch else description,
-            "industry": company.get("industry") or None,
+            "description": desc_display,
+            "industry": industry,
             "discovery_source": "yc",
         }
 

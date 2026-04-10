@@ -15,7 +15,108 @@
 
 Languages: Python, C++, Java, SQL, TypeScript, JavaScript, C, Swift  
 Frameworks & Libraries: React, FastAPI, Node.js, Pandas, NumPy, CustomTkinter, feedparser, Next.js, OpenCV, Pillow, PyAutoGUI, Radix UI, react-router-dom, SwiftUI, Tailwind CSS, Vite, Zod  
-Tools & Technologies: PostgreSQL, SQLite, Docker, Linux, macOS, Git, REST APIs, ETL Pipelines, CI/CD, Data Modeling, Caddy, Cloudinary, Gemini API, GitHub Actions, GitHub Pages, httpx, iOS, launchd, LibreOffice, LLaMA, Ollama, Oracle Cloud, PyInstaller, pytest, Shopify Admin API, Supabase, systemd, Uvicorn, URLSession, Win32 API, Xcode, YAML
+Tools & Technologies: PostgreSQL, SQLite, Docker, Linux, macOS, Git, REST APIs, ETL Pipelines, CI/CD, Data Modeling, Caddy, Cloudinary, Gemini API, GitHub Actions, GitHub Pages, httpx, iOS, launchd, LibreOffice, LLaMA, Ollama, Oracle Cloud, PyInstaller, pytest, Shopify Admin API, Supabase, systemd, Uvicorn, URLSession, Win32 API, Xcode, YAML  
+AI-assisted development: Projects in this dossier were built and refined using Cursor, Claude Code, and Antigravity; highly experienced with similar AI coding assistants, agentic IDE workflows, and comparable tooling.
+
+---
+
+## JobRadar
+
+Date: April 2025 to present
+
+### Subtitles
+- RSS Feed Monitor with LLM Scoring
+- Async ETL and SQLite Ingestion Pipeline
+- React and FastAPI Listing Dashboard
+- Local Ollama Ranking and Tailor Agent
+- Scheduled Feed Discovery Automation System
+
+### Type
+Personal project.
+
+### One-line summary
+End-to-end job-search agent that ingests engineering listings from ATS-style RSS feeds, discovers new employers from curated and web sources, scores each role with a local Ollama model, stores everything in SQLite, and exposes a React dashboard for triage, re-scoring, alerts, and AI-assisted resume tailoring against job descriptions.
+
+### Problem / goal
+Manually checking many company career feeds is slow and easy to miss; paid job APIs and cloud LLMs add cost. This project automates monitoring, ranking, and follow-up on one machine with predictable spend (local inference only), plus a UI to act on matches quickly.
+
+### What I built / did
+- Implemented an async feed monitor using httpx and feedparser with per-feed isolation so one broken RSS URL never stops the whole run.
+- Built parsers and resolvers for common ATS feed shapes (Greenhouse, Lever, Ashby, Workable-style RSS and JSON payloads) and a normalization layer for titles, locations, salaries, and posted dates.
+- Designed a discovery loop combining a hand-seeded company list, YC company directory ingestion, and Hacker News “Who’s Hiring” parsing assisted by structured LLM output, then probing and storing verified feed URLs in SQLite.
+- Wrote the scoring pipeline: hash-based deduplication, profile-driven Ollama prompts with JSON validation and retries, weighted overall score from fit, preference, and competitiveness dimensions.
+- Shipped a FastAPI backend and a React + TypeScript + Vite dashboard for listings, company feed health, status updates, manual re-score, and optional resume tailoring that fills a Word template from a markdown experience dossier.
+- Added optional push and email alerting (ntfy, Slack webhook, SMTP digest) keyed off configurable score thresholds per profile.
+- Automated operations on macOS with launchd jobs for recurring pipeline and discovery runs, plus setup scripts for venv, database init, and optional model pull.
+- Maintained a broad pytest suite (90+ tests) with HTTP and LLM calls mocked, covering feeds, deduplication, scoring, discovery, configuration loading, and resume-tailor document logic; structured as an installable Python package via pyproject.toml with launchd plists and setup scripts committed for reproducible deployment.
+
+### Stack & tools
+Python 3.12, FastAPI, Uvicorn, React, TypeScript, Vite, SQLite, httpx, feedparser, ollama (Python client), PyYAML, pytest, pytest-asyncio, ElementTree (WordprocessingML for docx tailoring), LibreOffice headless for PDF preview path, macOS launchd
+
+### Scope & constraints
+- Solo developer; public GitHub repository with the full codebase, tests, and operational scripts committed and version-controlled.
+- Single-user deployment on a dedicated Mac (no multi-tenant hosting story).
+- SQLite single-file database; not designed for concurrent writers beyond one machine.
+- LLM quality and latency depend on local hardware and chosen Ollama model; no cloud fallback in-repo.
+- Uptime and SLA not formally measured; alerting is best-effort.
+
+### Outcomes
+- Runs unattended on a fixed schedule (pipeline every few hours, discovery daily) without manual feed checking for tracked companies.
+- **Zero** recurring paid LLM API cost for scoring and tailoring while iterating (local Ollama only).
+- Growing automated test coverage (90+ pytest tests) to keep regressions visible while adding feed sources and dashboard features.
+- Consolidates discovery, ingestion, scoring, review, and tailored resume export in one codebase instead of separate scripts and spreadsheets.
+
+### JD keywords
+Python, FastAPI, React, TypeScript, Vite, SQLite, REST API, httpx, RSS, Atom, feedparser, Ollama, LLM, JSON, pytest, async, ETL, deduplication, full-stack, YAML, automation, macOS, launchd, job search, ATS, Greenhouse, Lever, Ashby, Word, docx, PDF, alerting
+
+---
+
+## ClashTracker
+
+date: June 2025 to present
+
+### Subtitles
+- FastAPI and React Analytics Dashboard
+- Scheduled ETL with PostgreSQL Backend
+- Multi-Router REST API Service
+- React SPA with CI/CD Pipeline
+- Systemd-Scheduled Data Ingestion Server
+
+### Type
+Personal project (private repo).
+
+### One-line summary
+Full-stack analytics platform that ingests Clash of Clans game data on a schedule, stores it in PostgreSQL via Supabase, exposes a FastAPI REST API, and renders a React + TypeScript SPA for clan leadership.
+
+### Problem / goal
+Clan co-leads were spending hours each week manually checking war results, Legends League standings, and Capital Raid performance across dozens of clans. This project consolidates that data into a single searchable dashboard with historical tracking.
+
+### What I built / did
+- Architected and built the FastAPI backend with CORS, Pydantic validation-error handlers, and structured request-lifecycle logging.
+- Implemented nine domain routers covering dashboard, wars, raids, legends, players, tracked clans, tracked players, admin, and health endpoints.
+- Wrote a Python ingestion service using httpx and the Supabase client that pulls data from the Supercell CoC API on a systemd timer (~144 runs/day), with tag encoding, timeouts, and namespaced ingestion logging.
+- Designed and evolved the PostgreSQL schema across thirteen incremental SQL migrations managed with Supabase.
+- Built a shared configuration layer and per-request Supabase client factory for the API.
+- Developed the React 19 SPA with TypeScript, Vite, Tailwind v4, Radix UI, and react-router-dom — 10 pages and 7 reusable components.
+- Set up CI via GitHub Actions to build and deploy the React SPA to GitHub Pages on every push to the default branch, with a build-time API base URL pointing to a DuckDNS hostname; thirteen SQL migration files tracked in version-controlled history alongside each schema change.
+- Created VM deployment assets: systemd service/timer units, a Caddyfile for reverse proxy + TLS, and setup scripts, deployed on an Oracle Cloud VM.
+
+### Stack & tools
+FastAPI, Uvicorn, React 19, TypeScript, Vite, Tailwind CSS v4, Radix UI, react-router-dom, PostgreSQL, Supabase, httpx, Python, GitHub Actions, GitHub Pages, systemd, Caddy, Oracle Cloud VM, pytest, structured logging
+
+### Scope & constraints
+- Solo developer; private GitHub repository with structured commit history — API schema changes and SQL migrations committed incrementally alongside feature work.
+- Deployed on a single Oracle Cloud VM; no containerization or horizontal scaling.
+- No Dockerfile or compose stack in-repo.
+
+### Outcomes
+- 200+ users across a mid-size clan alliance using the dashboard/API for clan operations.
+- ~250 API requests per ingestion cycle; 20k+ database records.
+- ~30 tracked clans, ~500 tracked players, ~144 automated ingestion runs/day.
+- Saved ~5–8 hours/week versus manual war/Legends/Capital checks for a co-lead.
+
+### JD keywords
+FastAPI, Uvicorn, React, TypeScript, Vite, Tailwind CSS, Radix UI, PostgreSQL, Supabase, REST API, httpx, Python, GitHub Actions, GitHub Pages, systemd, Caddy, structured logging, pytest, CI/CD, Oracle Cloud, scheduled ingestion, database migrations, full-stack
 
 ---
 
@@ -71,55 +172,6 @@ Python, OpenCV, template matching, NumPy, Windows API, SendMessage, HWND, PrintW
 
 ---
 
-## ClashTracker
-
-date: June 2025 to present
-
-### Subtitles
-- FastAPI and React Analytics Dashboard
-- Scheduled ETL with PostgreSQL Backend
-- Multi-Router REST API Service
-- React SPA with CI/CD Pipeline
-- Systemd-Scheduled Data Ingestion Server
-
-### Type
-Personal project (private repo).
-
-### One-line summary
-Full-stack analytics platform that ingests Clash of Clans game data on a schedule, stores it in PostgreSQL via Supabase, exposes a FastAPI REST API, and renders a React + TypeScript SPA for clan leadership.
-
-### Problem / goal
-Clan co-leads were spending hours each week manually checking war results, Legends League standings, and Capital Raid performance across dozens of clans. This project consolidates that data into a single searchable dashboard with historical tracking.
-
-### What I built / did
-- Architected and built the FastAPI backend with CORS, Pydantic validation-error handlers, and structured request-lifecycle logging.
-- Implemented nine domain routers covering dashboard, wars, raids, legends, players, tracked clans, tracked players, admin, and health endpoints.
-- Wrote a Python ingestion service using httpx and the Supabase client that pulls data from the Supercell CoC API on a systemd timer (~144 runs/day), with tag encoding, timeouts, and namespaced ingestion logging.
-- Designed and evolved the PostgreSQL schema across thirteen incremental SQL migrations managed with Supabase.
-- Built a shared configuration layer and per-request Supabase client factory for the API.
-- Developed the React 19 SPA with TypeScript, Vite, Tailwind v4, Radix UI, and react-router-dom — 10 pages and 7 reusable components.
-- Set up CI via GitHub Actions to build and deploy the React SPA to GitHub Pages on every push to the default branch, with a build-time API base URL pointing to a DuckDNS hostname; thirteen SQL migration files tracked in version-controlled history alongside each schema change.
-- Created VM deployment assets: systemd service/timer units, a Caddyfile for reverse proxy + TLS, and setup scripts, deployed on an Oracle Cloud VM.
-
-### Stack & tools
-FastAPI, Uvicorn, React 19, TypeScript, Vite, Tailwind CSS v4, Radix UI, react-router-dom, PostgreSQL, Supabase, httpx, Python, GitHub Actions, GitHub Pages, systemd, Caddy, Oracle Cloud VM, pytest, structured logging
-
-### Scope & constraints
-- Solo developer; private GitHub repository with structured commit history — API schema changes and SQL migrations committed incrementally alongside feature work.
-- Deployed on a single Oracle Cloud VM; no containerization or horizontal scaling.
-- No Dockerfile or compose stack in-repo.
-
-### Outcomes
-- 200+ users across a mid-size clan alliance using the dashboard/API for clan operations.
-- ~250 API requests per ingestion cycle; 20k+ database records.
-- ~30 tracked clans, ~500 tracked players, ~144 automated ingestion runs/day.
-- Saved ~5–8 hours/week versus manual war/Legends/Capital checks for a co-lead.
-
-### JD keywords
-FastAPI, Uvicorn, React, TypeScript, Vite, Tailwind CSS, Radix UI, PostgreSQL, Supabase, REST API, httpx, Python, GitHub Actions, GitHub Pages, systemd, Caddy, structured logging, pytest, CI/CD, Oracle Cloud, scheduled ingestion, database migrations, full-stack
-
----
-
 ## ReturnClip
 
 date: March 2026
@@ -166,54 +218,3 @@ Swift 5.0, SwiftUI, iOS (Xcode), Next.js 15, React 19, TypeScript, Zod, Vite 6, 
 
 ### JD keywords
 Swift, SwiftUI, iOS, Next.js, React, TypeScript, REST API, Zod, Supabase, PostgreSQL, JSONB, Shopify Admin API, Gemini, Cloudinary, URLSession, idempotency, merchant dashboard, hackathon, mobile development, full-stack, AI/LLM integration, deep linking, image upload, case lifecycle, team collaboration, cross-functional, agile, API contract design, GitHub
-
----
-
-## JobRadar
-
-Date: April 2025 to present
-
-### Subtitles
-- RSS Feed Monitor with LLM Scoring
-- Async ETL and SQLite Ingestion Pipeline
-- React and FastAPI Listing Dashboard
-- Local Ollama Ranking and Tailor Agent
-- Scheduled Feed Discovery Automation System
-
-### Type
-Personal project.
-
-### One-line summary
-End-to-end job-search agent that ingests engineering listings from ATS-style RSS feeds, discovers new employers from curated and web sources, scores each role with a local Ollama model, stores everything in SQLite, and exposes a React dashboard for triage, re-scoring, alerts, and AI-assisted resume tailoring against job descriptions.
-
-### Problem / goal
-Manually checking many company career feeds is slow and easy to miss; paid job APIs and cloud LLMs add cost. This project automates monitoring, ranking, and follow-up on one machine with predictable spend (local inference only), plus a UI to act on matches quickly.
-
-### What I built / did
-- Implemented an async feed monitor using httpx and feedparser with per-feed isolation so one broken RSS URL never stops the whole run.
-- Built parsers and resolvers for common ATS feed shapes (Greenhouse, Lever, Ashby, Workable-style RSS and JSON payloads) and a normalization layer for titles, locations, salaries, and posted dates.
-- Designed a discovery loop combining a hand-seeded company list, YC company directory ingestion, and Hacker News “Who’s Hiring” parsing assisted by structured LLM output, then probing and storing verified feed URLs in SQLite.
-- Wrote the scoring pipeline: hash-based deduplication, profile-driven Ollama prompts with JSON validation and retries, weighted overall score from fit, preference, and competitiveness dimensions.
-- Shipped a FastAPI backend and a React + TypeScript + Vite dashboard for listings, company feed health, status updates, manual re-score, and optional resume tailoring that fills a Word template from a markdown experience dossier.
-- Added optional push and email alerting (ntfy, Slack webhook, SMTP digest) keyed off configurable score thresholds per profile.
-- Automated operations on macOS with launchd jobs for recurring pipeline and discovery runs, plus setup scripts for venv, database init, and optional model pull.
-- Maintained a broad pytest suite (90+ tests) with HTTP and LLM calls mocked, covering feeds, deduplication, scoring, discovery, configuration loading, and resume-tailor document logic; structured as an installable Python package via pyproject.toml with launchd plists and setup scripts committed for reproducible deployment.
-
-### Stack & tools
-Python 3.12, FastAPI, Uvicorn, React, TypeScript, Vite, SQLite, httpx, feedparser, ollama (Python client), PyYAML, pytest, pytest-asyncio, ElementTree (WordprocessingML for docx tailoring), LibreOffice headless for PDF preview path, macOS launchd
-
-### Scope & constraints
-- Solo developer; public GitHub repository with the full codebase, tests, and operational scripts committed and version-controlled.
-- Single-user deployment on a dedicated Mac (no multi-tenant hosting story).
-- SQLite single-file database; not designed for concurrent writers beyond one machine.
-- LLM quality and latency depend on local hardware and chosen Ollama model; no cloud fallback in-repo.
-- Uptime and SLA not formally measured; alerting is best-effort.
-
-### Outcomes
-- Runs unattended on a fixed schedule (pipeline every few hours, discovery daily) without manual feed checking for tracked companies.
-- **Zero** recurring paid LLM API cost for scoring and tailoring while iterating (local Ollama only).
-- Growing automated test coverage (90+ pytest tests) to keep regressions visible while adding feed sources and dashboard features.
-- Consolidates discovery, ingestion, scoring, review, and tailored resume export in one codebase instead of separate scripts and spreadsheets.
-
-### JD keywords
-Python, FastAPI, React, TypeScript, Vite, SQLite, REST API, httpx, RSS, Atom, feedparser, Ollama, LLM, JSON, pytest, async, ETL, deduplication, full-stack, YAML, automation, macOS, launchd, job search, ATS, Greenhouse, Lever, Ashby, Word, docx, PDF, alerting

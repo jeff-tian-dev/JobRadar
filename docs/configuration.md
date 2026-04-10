@@ -6,7 +6,7 @@
 |------|------------|---------|
 | `config/settings.example.yaml` | Yes | Safe template without secrets |
 | `config/settings.yaml` | **No** (gitignored) | Real settings: Ollama, `db_path`, `active_profile`, per-profile alert secrets |
-| `config/sources.yaml` | Yes | Scraper queries, locations, career pages (no passwords) |
+| `config/seed_companies.yaml` | Yes | Curated companies for discovery source `seed` |
 | `config/profiles/<id>/profile.yaml` | Usually yes for your own profile | Resume-shaped data for the **scorer** (skills, preferences, weights, `alert_threshold`) |
 
 ## `settings.yaml`
@@ -18,6 +18,7 @@ Typical keys:
 - **`db_path`** — default `db/jobs.db` (path to SQLite file).
 - **`ollama_model`**, **`ollama_host`**, **`ollama_timeout_seconds`** — inference endpoint and model name.
 - **`ollama_tailor_temperature`**, **`ollama_tailor_timeout_seconds`**, **`ollama_tailor_num_predict`** (optional) — dashboard resume tailoring; lower temperature (e.g. **0.28**) yields more consistent bullets than high values.
+- **`ollama_tailor_think`** (optional, auto-detected) — `true` enables Ollama thinking mode so the model reasons through project scoring before emitting JSON (thinking logged to `pipeline.log`). Default: `true` for `qwen3:*` models, off for all others.
 - **`tailor_enforce_one_page`** (default **true**) — after tailoring, PDF page count + optional LLM “compress” passes until one page or max attempts; needs LibreOffice + **pypdf**.
 - **`tailor_one_page_max_trim_attempts`**, **`tailor_pdf_convert_timeout_seconds`**, **`ollama_tailor_fit_one_page_num_predict`**, **`ollama_tailor_fit_one_page_temperature`** (optional) — tune the one-page loop; see `settings.example.yaml`.
 - **`max_listing_age_days`** — default **7**: skip scraped rows whose **posted** date parses and is **strictly older** than this many days (e.g. 8+ days ago when set to 7). Set to **`null`** to disable (unknown/missing posted dates are never skipped by this rule).
@@ -32,14 +33,7 @@ cp config/settings.example.yaml config/settings.yaml
 
 Then edit **`config/settings.yaml`** only on your machine; never commit it if it contains secrets.
 
-## `sources.yaml`
-
-Top-level sections:
-
-- **`indeed`**, **`linkedin`**, **`glassdoor`** — `enabled`, queries, location, limits.
-- **`career_pages`** — list of `{ name, url, selectors }` for generic HTTP scraping.
-
-v1 uses **one global** `sources.yaml` for all profiles.
+Discovery toggles and caps live under **`discovery`** in `settings.yaml` (`enabled`, `relevance_threshold`, `max_companies_per_source`, `sources.*`); see `config/settings.example.yaml`.
 
 ## Profile YAML (`config/profiles/<id>/profile.yaml`)
 

@@ -17,7 +17,14 @@ import ollama
 import yaml
 from xml.etree import ElementTree as ET
 
-from pipeline.config_paths import REPO_ROOT, load_settings, profile_yaml_path, profiles_dir, prompts_dir
+from pipeline.config_paths import (
+    REPO_ROOT,
+    load_settings,
+    profile_yaml_path,
+    profiles_dir,
+    prompts_dir,
+    read_ollama_repeat_penalty,
+)
 from pipeline.models import (
     log_ollama_metrics,
     log_tailor_session_ollama_summary,
@@ -65,11 +72,9 @@ def format_dossier_project_catalog_for_prompt(dossier_text: str, num_projects: i
     lines: list[str] = [
         f"You have **{len(names)}** projects below. You will output **{num_projects}** of them on the resume.",
         "",
-        "**Checklist (reverse-alphabetical — not importance, not resume order):** scan every name, "
-        "compare each to the job description, then rank by combined **JD fit + dossier impact** before you write JSON. "
-        "When the JD emphasizes **LLMs / GenAI / RAG / agents / prompts**, explicitly score each project for **inference, "
-        "structured model output, or prompt pipelines** in the dossier—not only user or row counts. "
-        "**Wrong:** slot 1 = first project section in the dossier file without explicit comparison.",
+        "**Checklist (reverse-alphabetical — not importance, not resume order):** for **each** name, assign a silent **1–10** JD relevance score + one-line dossier-backed rationale **before** comparing projects to each other (see system prompt workflow step 2). "
+        "Then pick and order the resume slots from those scores + tie-breakers—not from this list order or dossier file order. "
+        "When the JD emphasizes **LLMs / GenAI / RAG / agents / prompts**, weight **inference, structured model output, or prompt pipelines** in each score—not only user or row counts.",
         "",
     ]
     for n in ordered:
@@ -189,6 +194,40 @@ def _first_substantial_plain_run(para: ET.Element) -> ET.Element | None:
     return best
 
 
+def _run_text_content(r: ET.Element) -> str:
+    """All ``w:t`` text (and tails) inside one ``w:r``."""
+    parts: list[str] = []
+    for t in r.findall(_w("t")):
+        if t.text:
+            parts.append(t.text)
+        if t.tail:
+            parts.append(t.tail)
+    return "".join(parts)
+
+
+def _looks_like_tailor_date_line(text: str) -> bool:
+    """True if ``text`` looks like a project date/range (not a subtitle after the bold name).
+
+    Word templates often use: **Name** (plain) — Subtitle (plain) April 2025 - Present. Without this
+    check, the subtitle run is misclassified as ``date_run``, preserved on update, and the docx shows
+    the merged title twice (e.g. ``Name — Sub — Name`` when the template repeats the name).
+    """
+    t = text.strip()
+    if not t:
+        return False
+    if re.search(r"\b(19|20)\d{2}\b", t):
+        return True
+    if re.search(r"\bPresent\b", t, flags=re.IGNORECASE):
+        return True
+    if re.search(
+        r"\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\b",
+        t,
+        flags=re.IGNORECASE,
+    ):
+        return True
+    return False
+
+
 def _resolve_project_content_runs(
     title_para: ET.Element,
     tech_para: ET.Element | None,
@@ -197,38 +236,76 @@ def _resolve_project_content_runs(
     """Return (title_run, date_run, tech_run). tech_run is inside title_para when tech_inline."""
     runs = title_para.findall(_w("r"))
     title_run: ET.Element | None = None
+    for r in runs:
+        tx = _run_text_content(r)
+        if _run_is_bold(r) and tx.strip():
+            title_run = r
+            break
+    if title_run is None:
+        for r in runs:
+            tx = _run_text_content(r)
+            if tx.strip():
+                title_run = r
+                break
+
     date_run: ET.Element | None = None
     tech_run_inline: ET.Element | None = None
-    phase = "seek_title"
+    if title_run is None:
+        tech_run: ET.Element | None = tech_run_inline if tech_inline else None
+        if not tech_inline and tech_para is not None:
+            tech_run = _first_substantial_plain_run(tech_para)
+        return None, None, tech_run
 
-    for r in runs:
-        t = r.find(_w("t"))
-        tx = (t.text or "") if t is not None else ""
-        if phase == "seek_title":
-            if _run_is_bold(r) and tx.strip():
-                title_run = r
-                phase = "seek_date"
+    idx_title = runs.index(title_run)
+    for j in range(idx_title + 1, len(runs)):
+        r = runs[j]
+        tx = _run_text_content(r).strip()
+        if not tx:
             continue
-        if phase == "seek_date":
-            if not tx.strip():
-                continue
+        if date_run is None:
             if _run_is_bold(r):
                 continue
-            date_run = r
-            phase = "seek_tech_inline"
+            if _looks_like_tailor_date_line(tx):
+                date_run = r
             continue
-        if phase == "seek_tech_inline" and tech_inline:
-            if not tx.strip():
-                continue
-            if _run_is_bold(r):
-                continue
+        if tech_inline and tech_run_inline is None and not _run_is_bold(r):
             tech_run_inline = r
             break
 
-    tech_run: ET.Element | None = tech_run_inline if tech_inline else None
+    if date_run is None:
+        for j in range(idx_title + 1, len(runs)):
+            r = runs[j]
+            tx = _run_text_content(r).strip()
+            if not tx or _run_is_bold(r):
+                continue
+            date_run = r
+            if tech_inline:
+                for k in range(j + 1, len(runs)):
+                    r2 = runs[k]
+                    tx2 = _run_text_content(r2).strip()
+                    if not tx2 or _run_is_bold(r2):
+                        continue
+                    tech_run_inline = r2
+                    break
+            break
+
+    tech_run = tech_run_inline if tech_inline else None
     if not tech_inline and tech_para is not None:
         tech_run = _first_substantial_plain_run(tech_para)
     return title_run, date_run, tech_run
+
+
+def _heading_line_text_before_date(title_para: ET.Element, date_run: ET.Element | None) -> str:
+    """Project heading text: all runs before the date run (bold name + plain subtitle fragments)."""
+    parts: list[str] = []
+    for r in title_para.findall(_w("r")):
+        if date_run is not None and r is date_run:
+            break
+        parts.append(_run_text_content(r))
+    joined = "".join(parts).strip()
+    if joined:
+        return joined
+    return _bold_segments_text(title_para) or _paragraph_plain_text(title_para).strip()
 
 
 def split_double_asterisk_segments(text: str) -> list[tuple[str, bool]]:
@@ -359,10 +436,8 @@ def extract_resume_structure(root: ET.Element) -> ResumeExtraction:
             i += 1
             continue
 
-        bold = _bold_segments_text(p)
-        plain = _paragraph_plain_text(p).strip()
-        title_text = bold if bold else plain
-        title_run, date_run, tech_run = _resolve_project_content_runs(p, tech_para, tech_inline)
+        _, date_run, tech_run = _resolve_project_content_runs(p, tech_para, tech_inline)
+        title_text = _heading_line_text_before_date(p, date_run)
         ref_plain, ref_bold = _pick_ref_runs(bullets[0])
         projects.append(
             ProjectBlock(
@@ -790,6 +865,33 @@ def apply_tailor_json_to_document(
         _apply_skills(ext, skills_obj)
 
 
+_THINK_RE = re.compile(r"<think>[\s\S]*?</think>", re.DOTALL)
+
+
+def _strip_think_block(content: str) -> tuple[str, str]:
+    """Remove ``<think>…</think>`` block if embedded in content (fallback). Returns (cleaned, thinking_text)."""
+    m = _THINK_RE.search(content)
+    if m is None:
+        return content, ""
+    thinking = m.group(0)[len("<think>"):-len("</think>")].strip()
+    return (content[: m.start()] + content[m.end() :]).strip(), thinking
+
+
+def _extract_thinking_from_response(resp: Any) -> str:
+    """Pull thinking text from Ollama's ``message.thinking`` field (native API), falling back to tag stripping."""
+    msg = getattr(resp, "message", None)
+    if msg is not None:
+        thinking = getattr(msg, "thinking", None)
+        if isinstance(thinking, str) and thinking.strip():
+            return thinking.strip()
+    if isinstance(resp, dict):
+        msg = resp.get("message") or {}
+        thinking = msg.get("thinking")
+        if isinstance(thinking, str) and thinking.strip():
+            return thinking.strip()
+    return ""
+
+
 def _strip_json_fences(content: str) -> str:
     content = content.strip()
     if content.startswith("```"):
@@ -1085,23 +1187,47 @@ def _tailor_ollama_model(settings: dict[str, Any]) -> str:
     return str(settings.get("ollama_model", "qwen3:14b"))
 
 
+def _model_supports_thinking(model: str) -> bool:
+    """True when the Ollama model tag implies native ``<think>`` support (Qwen 3 family)."""
+    tag = model.strip().lower()
+    return tag.startswith("qwen3:") or tag.startswith("qwen3-") or tag == "qwen3"
+
+
+def _tailor_think_param(settings: dict[str, Any], model: str) -> bool | None:
+    """Return ``True`` to enable Ollama's ``think`` API for the tailor call, ``None`` to leave default.
+
+    Auto-detection: Qwen 3 models get ``True`` so the model reasons through project
+    scoring before emitting JSON (thinking goes into ``message.thinking``, content stays
+    clean JSON). Other models get ``None`` (server default). Override via
+    ``ollama_tailor_think`` in settings (``true`` / ``false``).
+    """
+    override = settings.get("ollama_tailor_think")
+    if override is not None:
+        if isinstance(override, bool):
+            return override or None
+        if isinstance(override, str):
+            return True if override.strip().lower() in ("1", "true", "yes", "on") else None
+    return True if _model_supports_thinking(model) else None
+
+
 def _parse_tailor_raw(
     raw: str, expected_projects: int, bullets_per_slot: list[int]
-) -> tuple[dict[str, Any] | None, str]:
-    """Return (parsed dict, failure reason) for logging."""
+) -> tuple[dict[str, Any] | None, str, str]:
+    """Return (parsed dict, failure reason, thinking_text) for logging."""
+    cleaned, thinking = _strip_think_block(raw)
     try:
-        obj = json.loads(_strip_json_fences(raw))
+        obj = json.loads(_strip_json_fences(cleaned))
     except json.JSONDecodeError as e:
-        return None, f"json_decode:{e}"
+        return None, f"json_decode:{e}", thinking
     if not isinstance(obj, dict):
-        return None, "not_a_dict"
+        return None, "not_a_dict", thinking
     _prepare_tailor_llm_lists_for_resume(obj)
     ok, vreason = _validate_tailor_response(obj, expected_projects, bullets_per_slot)
     if not ok:
-        return None, f"validation_failed:{vreason}"
+        return None, f"validation_failed:{vreason}", thinking
     _normalize_project_date_ranges_in_data(obj)
     _apply_tailor_explanation_defaults(obj, expected_projects)
-    return obj, ""
+    return obj, "", thinking
 
 
 def _format_bullets_per_slot(bullets_per_slot: list[int]) -> str:
@@ -1231,7 +1357,10 @@ def call_tailor_fit_one_page_llm(
             bt = 0.28
         temperature = max(0.0, min(0.25, bt))
 
-    base_options: dict[str, Any] = {"temperature": temperature}
+    base_options: dict[str, Any] = {
+        "temperature": temperature,
+        "repeat_penalty": read_ollama_repeat_penalty(settings),
+    }
     num_ctx_raw = settings.get("ollama_tailor_num_ctx")
     if num_ctx_raw is not None:
         try:
@@ -1258,24 +1387,32 @@ def call_tailor_fit_one_page_llm(
         .replace("{{current_json}}", current_json)
     )
 
+    think_param = _tailor_think_param(settings, model)
+
     client = ollama.Client(host=host, timeout=timeout)
     metrics_runs: list[dict[str, Any]] = []
 
     for num_predict in predict_attempts_fit:
         opts = {**base_options, "num_predict": num_predict}
+        chat_kwargs: dict[str, Any] = dict(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            format="json",
+            options=opts,
+        )
+        if think_param is not None:
+            chat_kwargs["think"] = think_param
         try:
-            resp = client.chat(
-                model=model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                format="json",
-                options=opts,
-            )
+            resp = client.chat(**chat_kwargs)
         except Exception:
             logger.exception("Ollama one-page tailor request failed (num_predict=%s)", num_predict)
             continue
+        thinking = _extract_thinking_from_response(resp)
+        if thinking:
+            logger.info("One-page trim thinking: %s", thinking[:2000])
         m = ollama_response_metrics_dict(resp)
         m.update(
             {
@@ -1295,7 +1432,7 @@ def call_tailor_fit_one_page_llm(
         if not content:
             logger.error("Empty ollama one-page tailor response (num_predict=%s)", num_predict)
             continue
-        out, reason = _parse_tailor_raw(str(content), expected_projects, bullets_per_slot)
+        out, reason, _extra_think = _parse_tailor_raw(str(content), expected_projects, bullets_per_slot)
         if out is not None:
             return out, metrics_runs
         logger.warning(
@@ -1440,7 +1577,10 @@ def call_tailor_llm(
     temperature = float(tailor_temp) if tailor_temp is not None else 0.28
     temperature = max(0.0, min(2.0, temperature))
 
-    base_options: dict[str, Any] = {"temperature": temperature}
+    base_options: dict[str, Any] = {
+        "temperature": temperature,
+        "repeat_penalty": read_ollama_repeat_penalty(settings),
+    }
     num_ctx_raw = settings.get("ollama_tailor_num_ctx")
     if num_ctx_raw is not None:
         try:
@@ -1467,24 +1607,33 @@ def call_tailor_llm(
         .replace("{{description}}", job_description)
     )
 
+    think_param = _tailor_think_param(settings, model)
+    if think_param:
+        logger.info("Tailor: thinking mode enabled for model %s", model)
+
     client = ollama.Client(host=host, timeout=timeout)
     metrics_runs: list[dict[str, Any]] = []
 
-    def _call_with_predict(num_predict: int) -> str | None:
+    def _call_with_predict(num_predict: int) -> tuple[str | None, str]:
+        """Returns (content, thinking_text)."""
         opts = {**base_options, "num_predict": num_predict}
+        chat_kwargs: dict[str, Any] = dict(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            format="json",
+            options=opts,
+        )
+        if think_param is not None:
+            chat_kwargs["think"] = think_param
         try:
-            resp = client.chat(
-                model=model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                format="json",
-                options=opts,
-            )
+            resp = client.chat(**chat_kwargs)
         except Exception:
             logger.exception("Ollama tailor request failed (num_predict=%s)", num_predict)
-            return None
+            return None, ""
+        thinking = _extract_thinking_from_response(resp)
         m = ollama_response_metrics_dict(resp)
         m.update({"phase": "tailor", "model": model, "num_predict": num_predict})
         metrics_runs.append(m)
@@ -1496,17 +1645,19 @@ def call_tailor_llm(
             content = msg.get("content", content)
         if not content:
             logger.error("Empty ollama tailor response (num_predict=%s)", num_predict)
-            return None
-        return str(content)
+            return None, thinking
+        return str(content), thinking
 
     last_raw: str | None = None
     last_reason = ""
     for attempt_i, num_predict in enumerate(predict_attempts):
-        raw = _call_with_predict(num_predict)
+        raw, thinking = _call_with_predict(num_predict)
+        if thinking:
+            logger.info("Tailor thinking (attempt %s): %s", attempt_i + 1, thinking[:2000])
         if raw is None:
             continue
         last_raw = raw
-        out, reason = _parse_tailor_raw(raw, expected_projects, bullets_per_slot)
+        out, reason, _extra_think = _parse_tailor_raw(raw, expected_projects, bullets_per_slot)
         if out is not None:
             if attempt_i > 0:
                 logger.info(

@@ -118,6 +118,27 @@ async def try_resolve_feed(
     return None
 
 
+async def try_resolve_feed_with_website_fallback(
+    client: httpx.AsyncClient,
+    slug: str,
+    *,
+    platform: str | None = None,
+    website: str | None = None,
+    timeout: float = 15.0,
+) -> ResolvedFeed | None:
+    """Resolve feed by slug; if that fails, fetch ``website`` and retry with inferred ATS platform."""
+    resolved = await try_resolve_feed(client, slug, platform=platform, timeout=timeout)
+    if resolved is not None:
+        return resolved
+    site = (website or "").strip()
+    if not site:
+        return None
+    inferred = await detect_platform_from_careers_page(client, site, timeout=timeout)
+    if inferred is None:
+        return None
+    return await try_resolve_feed(client, slug, platform=inferred, timeout=timeout)
+
+
 async def detect_platform_from_careers_page(
     client: httpx.AsyncClient,
     careers_url: str,

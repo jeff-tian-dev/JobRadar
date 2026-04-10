@@ -4,19 +4,21 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sqlite3
 from typing import Any
 
 import httpx
 import ollama
 
-from feeds.resolver import try_resolve_feed
+from discovery.relevance import should_skip_company_for_relevance
+from feeds.resolver import try_resolve_feed_with_website_fallback
 from pipeline.company_db import (
     finish_discovery_run,
     insert_discovery_run,
     upsert_company,
 )
-from pipeline.config_paths import prompts_dir
+from pipeline.config_paths import prompts_dir, read_ollama_repeat_penalty
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +66,10 @@ def _parse_comment_with_llm(
                 {"role": "user", "content": comment_text[:4000]},  # cap length
             ],
             format="json",
-            options={"temperature": 0.1},
+            options={
+                "temperature": 0.1,
+                "repeat_penalty": read_ollama_repeat_penalty(settings),
+            },
         )
         raw = response["message"]["content"]
         data = json.loads(raw)
@@ -120,7 +125,8 @@ async def _get_thread_comments(client: httpx.AsyncClient, thread_id: int) -> lis
 async def discover_from_hn(
     conn: sqlite3.Connection,
     settings: dict[str, Any],
-    max_companies: int = 100,
+    profile: dict[str, Any] | None = None,
+    max_companies: int | None = 100,
 ) -> int:
     """Parse the latest HN 'Who is Hiring' thread and add companies to the DB.
 
@@ -146,7 +152,8 @@ async def discover_from_hn(
         comments = await _get_thread_comments(client, thread_id)
         logger.info("Fetched %d comments from HN thread", len(comments))
 
-        for comment in comments[:max_companies]:
+        to_scan = comments if max_companies is None else comments[:max_companies]
+        for comment in to_scan:
             parsed = _parse_comment_with_llm(comment, settings)
             if not parsed:
                 continue
@@ -155,23 +162,37 @@ async def discover_from_hn(
             if not company_name:
                 continue
 
-            found += 1
             website = parsed.get("website") or None
             location = parsed.get("location") or None
+            desc = parsed.get("description")
+            if isinstance(desc, str):
+                desc_val: str | None = desc
+            else:
+                desc_val = None
+
+            if should_skip_company_for_relevance(
+                company_name, desc_val, None, profile, settings
+            ):
+                continue
+
+            found += 1
 
             # Try to find a slug from the website URL
             slug: str | None = None
             if website:
-                # e.g. "https://company.com" → "company"
-                import re
                 m = re.search(r"https?://(?:www\.)?([^/]+)", website)
                 if m:
                     slug = m.group(1).split(".")[0]
 
-            # Attempt feed resolution if we have a slug
             resolved = None
             if slug:
-                resolved = await try_resolve_feed(client, slug, timeout=feed_timeout)
+                w = website.strip() if isinstance(website, str) else ""
+                resolved = await try_resolve_feed_with_website_fallback(
+                    client,
+                    slug,
+                    website=w or None,
+                    timeout=feed_timeout,
+                )
 
             record: dict[str, Any] = {
                 "name": company_name,
@@ -179,7 +200,7 @@ async def discover_from_hn(
                 "website": website,
                 "location": location,
                 "discovery_source": "hn_hiring",
-                "description": parsed.get("description"),
+                "description": desc_val,
             }
 
             if resolved and resolved.status == "ok":

@@ -42,6 +42,19 @@ def load_settings() -> dict[str, Any]:
     return {}
 
 
+_DEFAULT_OLLAMA_REPEAT_PENALTY = 1.1
+
+
+def read_ollama_repeat_penalty(settings: dict[str, Any] | None = None) -> float:
+    """Ollama ``repeat_penalty`` for chat ``options`` (default 1.1). Invalid or non-positive values fall back."""
+    raw = (settings or {}).get("ollama_repeat_penalty", _DEFAULT_OLLAMA_REPEAT_PENALTY)
+    try:
+        v = float(raw)
+    except (TypeError, ValueError):
+        return _DEFAULT_OLLAMA_REPEAT_PENALTY
+    return v if v > 0.0 else _DEFAULT_OLLAMA_REPEAT_PENALTY
+
+
 def effective_profile_id(cli_profile: str | None) -> str:
     """Precedence: --profile > JOB_SEARCH_PROFILE > active_profile in settings."""
     if cli_profile:
@@ -68,14 +81,6 @@ def profiles_dir(settings: dict[str, Any] | None = None) -> Path:
 def profile_yaml_path(profile_id: str, settings: dict[str, Any] | None = None) -> Path:
     """Resolved path to config/profiles/<id>/profile.yaml."""
     return profiles_dir(settings) / profile_id / "profile.yaml"
-
-
-def sources_path() -> Path:
-    return REPO_ROOT / "config" / "sources.yaml"
-
-
-def load_sources() -> dict[str, Any]:
-    return load_yaml(sources_path())
 
 
 def load_profile_for_scoring(profile_id: str, settings: dict[str, Any] | None = None) -> dict[str, Any]:

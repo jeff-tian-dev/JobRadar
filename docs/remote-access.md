@@ -22,7 +22,6 @@ The goal is: services stay bound to **`127.0.0.1` on the Mac** (not advertised t
 |---------------------------|-----------------------------------|-------------------------|
 | **`bash scripts/dev.sh`** (Vite + API) | **5173** only | `http://127.0.0.1:5173` |
 | **Production-style API** (`uvicorn dashboard.api:app --port 8000` with built frontend) | **8000** | `http://127.0.0.1:8000` |
-| **Streamlit** (if you use it) | **8501** | `http://127.0.0.1:8501` |
 
 For **`dev.sh`**, you only need port **5173**: the Vite dev server proxies `/api` to the FastAPI backend on the Mac, so the browser never has to reach port 8000 directly.
 
@@ -101,19 +100,7 @@ Browser: **http://127.0.0.1:8000**
 
 ---
 
-## 6. Streamlit (optional)
-
-If you run `streamlit run dashboard/app.py` on the Mac:
-
-```text
-ssh -N -L 8501:127.0.0.1:8501 macuser@MAC_HOST
-```
-
-Browser: **http://127.0.0.1:8501**
-
----
-
-## 7. Troubleshooting
+## 6. Troubleshooting
 
 | Symptom | What to check |
 |--------|----------------|
@@ -126,7 +113,7 @@ Browser: **http://127.0.0.1:8501**
 
 ---
 
-## 8. Security notes
+## 7. Security notes
 
 - Prefer **SSH keys** and keep the Mac patched.
 - Tunnels do **not** replace authentication on the dashboard itself; anyone who can SSH as you can forward ports. Lock down SSH appropriately.
