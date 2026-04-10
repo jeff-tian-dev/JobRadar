@@ -10,7 +10,8 @@
 active_profile: jeff
 profiles_dir: config/profiles
 db_path: db/jobs.db
-# Optional: Word template for tailoring (layout/slots only; content comes from experience dossier).
+# Optional: Word résumé template (legacy tooling / structure extraction only). Tailoring builds an ATS PDF
+# from experience-dossier.md + profile.yaml via HTML → Playwright; it does not patch this .docx.
 # resume_template_docx: config/profiles/jeff/jeff resume template.docx
 # Legacy alias: resume_docx (same resolution order: resume_template_docx first, then resume_docx).
 # If both unset: tries profiles/<active_profile>/jeff resume template.docx, then Jeff Tian Resume.docx.
@@ -41,13 +42,22 @@ ollama_tailor_num_predict: 24576
 # Other models default to false. Override to force either behavior.
 # ollama_tailor_think: true
 ollama_host: http://127.0.0.1:11434
-# PDF export from the tailor preview uses LibreOffice headless (brew install --cask libreoffice).
 #
-# One-page resume (after tailor): convert to PDF, count pages with pypdf; if >1, run a compress LLM pass.
+# Tailor PDF: Playwright Chromium renders ATS HTML. After `pip install -e .`, run:
+#   playwright install chromium
+#
+# Optional soft caps (defaults in code): max list lengths and bullets per experience/project block.
+# tailor_max_experience_entries: 5
+# tailor_max_project_entries: 6
+# tailor_max_bullets_per_experience: 6
+# tailor_max_bullets_per_project: 6
+#
+# PDF page size for ATS output: letter or a4 (also inferred from profile location/country when unset).
+# ats_pdf_format: letter
+#
+# One-page resume: measure pages on the Playwright PDF with pypdf; if >1, run compress LLM until one page or max attempts.
 tailor_enforce_one_page: true
 tailor_one_page_max_trim_attempts: 5
-# LibreOffice timeout (seconds) for each PDF used to count pages during tailoring.
-# tailor_pdf_convert_timeout_seconds: 120
 # Optional: token budget for the compress pass (omit to derive from ollama_tailor_num_predict).
 # ollama_tailor_fit_one_page_num_predict: 12288
 # Optional: sampling temperature for compress pass (omit = min(0.25, ollama_tailor_temperature)).

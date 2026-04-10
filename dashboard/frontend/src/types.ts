@@ -106,10 +106,14 @@ export interface TailorProjectPreview {
   /** Present on tailored output; may be empty on original/dossier side. */
   date_range?: string
   technologies?: string
+  dossier_source?: string
 }
 
 export interface TailorOriginal {
+  experience: TailorProjectPreview[]
   projects: TailorProjectPreview[]
+  professional_summary?: string
+  core_competencies?: string[]
   skills: Record<string, string>
 }
 
@@ -148,15 +152,20 @@ export interface TailorOllamaMetrics {
   memory_note: string
 }
 
+export interface TailorTailored {
+  best_title: string
+  professional_summary: string
+  core_competencies: string[]
+  experience: TailorProjectPreview[]
+  projects: TailorProjectPreview[]
+  skills: Record<string, string>
+}
+
 export interface TailorResult {
   filename: string
-  docx_base64: string
+  pdf_base64: string
   original: TailorOriginal
-  tailored: {
-    projects: TailorProjectPreview[]
-    skills: Record<string, string>
-    best_title: string
-  }
+  tailored: TailorTailored
   explanation: {
     job_analysis: string
     change_summary: string[]
@@ -167,15 +176,20 @@ export interface TailorResult {
 /** Payload for POST /api/tailor/rebuild (user-edited resume fields). */
 export interface RebuildRequest {
   best_title: string
+  professional_summary: string
+  core_competencies: string[]
+  experience: TailorProjectPreview[]
   projects: TailorProjectPreview[]
   skills: Record<string, string>
+  job_analysis: string
+  change_summary: string[]
 }
 
 /** Response from POST /api/tailor/rebuild (includes preview sync after one-page trim). */
 export interface RebuildResponse {
   filename: string
-  docx_base64: string
-  tailored: TailorResult['tailored']
+  pdf_base64: string
+  tailored: TailorTailored
   explanation: TailorResult['explanation']
   ollama_metrics?: TailorOllamaMetrics
 }

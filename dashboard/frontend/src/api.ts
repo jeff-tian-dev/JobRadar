@@ -83,20 +83,6 @@ export const api = {
       signal: AbortSignal.timeout(120_000),
     }),
 
-  convertTailorPdf: async (docxBase64: string): Promise<Blob> => {
-    const res = await fetch('/api/tailor/convert-pdf', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ docx_base64: docxBase64 }),
-      signal: AbortSignal.timeout(180_000),
-    })
-    if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new Error(formatApiErrorForUser(res.status, '/tailor/convert-pdf', text))
-    }
-    return res.blob()
-  },
-
   // Companies
   getCompanies: () => request<CompanySummary[]>('/companies'),
   updateFeedStatus: (id: number, status: string) =>

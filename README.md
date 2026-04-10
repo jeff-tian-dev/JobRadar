@@ -2,7 +2,7 @@
 
 > **Automated job-search pipeline that runs 24/7 on your Mac — zero API costs, everything local.**
 
-JobRadar monitors RSS/Atom feeds from Greenhouse, Lever, Ashby, and Workable, discovers new companies automatically via YC, Hacker News hiring threads, and GitHub Trending (each source toggled in `config/settings.yaml`), scores each listing against your personal profile using a **local LLM (qwen3:14b via Ollama)**, stores ranked results in SQLite, and surfaces them through a **React + FastAPI dashboard**. High-scoring matches trigger push alerts (ntfy.sh, Slack, or email). The dashboard can **tailor a résumé** to a job description using optional profile assets (`experience-dossier.md`, Word template) and optional **PDF export** (LibreOffice) with one-page enforcement—see `config/settings.example.yaml`.
+JobRadar monitors RSS/Atom feeds from Greenhouse, Lever, Ashby, and Workable, discovers new companies automatically via YC, Hacker News hiring threads, and GitHub Trending (each source toggled in `config/settings.yaml`), scores each listing against your personal profile using a **local LLM (qwen3:14b via Ollama)**, stores ranked results in SQLite, and surfaces them through a **React + FastAPI dashboard**. High-scoring matches trigger push alerts (ntfy.sh, Slack, or email). The dashboard can **tailor a résumé** to a job description from `experience-dossier.md` and `profile.yaml`, emitting an **ATS-style PDF** via HTML and **Playwright** (with optional one-page enforcement). A Word template is optional legacy tooling only—see `config/settings.example.yaml`.
 
 ---
 
@@ -14,7 +14,7 @@ JobRadar monitors RSS/Atom feeds from Greenhouse, Lever, Ashby, and Workable, di
 | **ATS feed resolution** | Auto-detects Greenhouse / Lever / Ashby / Workable and verifies live feed URLs |
 | **Local LLM scoring** | Three independent scores — skill fit, role preference, company competitiveness — weighted and combined in Python, never in the model |
 | **Smart dedup** | Hash-based (title + company + city); skips re-scoring the same hash if scored within the last 7 days |
-| **React dashboard** | Filter, sort, update status, re-score listings, JD-based résumé tailoring with optional DOCX/PDF output |
+| **React dashboard** | Filter, sort, update status, re-score listings, JD-based résumé tailoring with in-browser PDF preview and download |
 | **Push alerts** | ntfy.sh, Slack webhook, or SMTP email digest — fires only above your configured score threshold |
 | **launchd scheduling** | Feed pipeline every 3 hours, discovery daily — no cron, no cloud, no fees |
 | **pytest suite** | Full coverage across pipeline, feeds, discovery, scorer, tailor |
@@ -52,9 +52,9 @@ Dashboard  (dev: Vite :5173 + API :8000; prod: uvicorn serves built SPA on :8000
 - **Database**: SQLite (`db/jobs.db`)
 - **Dashboard API**: FastAPI + Uvicorn
 - **Dashboard UI**: React 18, TypeScript, Tailwind CSS, Vite (**Node.js** required for `npm` / `dev.sh`)
-- **Résumé / PDF**: optional LibreOffice (`soffice`) for PDF export; `pypdf` for page checks (see `requirements.txt`)
+- **Résumé / PDF**: Playwright Chromium for tailor PDF export; `pypdf` to count pages for one-page enforcement (see `config/settings.example.yaml`)
 - **Alerting**: ntfy.sh, Slack incoming webhooks, `smtplib`
-- **Testing**: pytest + pytest-asyncio (109 tests, all passing)
+- **Testing**: pytest + pytest-asyncio (118 tests, all passing)
 
 ---
 
@@ -130,7 +130,7 @@ JobRadar/
 | `config/profiles/<id>/profile.yaml` | Yes | Scoring weights, target titles, locations, deal-breakers |
 | `config/seed_companies.yaml` | Yes | Hand-curated company list (~2 500 companies) |
 
-**Optional profile files** (paths overridable in `settings.yaml`): `experience-dossier.md` and a Word résumé template for tailoring—see comments in `config/settings.example.yaml`.
+**Optional profile files** (paths overridable in `settings.yaml`): `experience-dossier.md` (required for tailoring), `profile.yaml` (contact, education, certifications), and optionally a Word template for legacy flows—see `config/settings.example.yaml`.
 
 All secrets (ntfy topic, Slack webhook URL, SMTP password) live exclusively in `config/settings.yaml` — never committed.
 

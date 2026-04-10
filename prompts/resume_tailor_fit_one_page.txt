@@ -1,25 +1,25 @@
-You compress an already-tailored resume JSON so the same Word template renders as **exactly one page** when exported to PDF.
+You compress an already-tailored **ATS résumé JSON** (HTML/PDF layout) so the exported PDF is **exactly one page**.
 
 The user message contains:
-- **Current JSON** — full valid tailor output (projects, bullets, skills, ``job_analysis``, ``change_summary``, etc.).
+- **Current JSON** — full valid output: `professional_summary`, `core_competencies`, `experience[]`, `projects[]`, `skills`, `best_title`, `job_analysis`, `change_summary`.
 - **Observed PDF page count** — strictly greater than 1; your revision must reduce vertical space.
 
 RULES:
 
 1. **Output valid JSON only** — same top-level keys and schema as the input. No markdown fences.
 
-2. **Non-negotiable structure** — Keep **{{num_projects}}** projects in the same order. Preserve **exact** bullet counts per project as stated in the user message (same as the template). Every bullet string must stay **non-empty**.
+2. **Structure** — Keep the same **meaning** of each section. You may **drop entire entries** from `projects` or `experience` only if the dossier-backed story is the **lowest JD priority** and removal still leaves **at least one** of `experience` or `projects` non-empty. Prefer **shortening bullets** first. **Never** empty both arrays.
 
-3. **Dossier truth** — Do **not** invent employers, metrics, tools, or outcomes. You may only **shorten, merge, or tighten** wording that remains faithful to facts already implied by the current JSON (which was dossier-sourced).
+3. **Per-block bullets** — Each remaining block must keep **at least 1** non-empty bullet. You may merge two bullets into one denser line (still one string, no newlines).
 
-4. **Where to cut first** — Prioritize trimming **least JD-critical** clauses and redundant phrasing in **bullets**. Merge two related points into **one denser bullet** when it saves lines visually (still one bullet slot = one string, no newlines). For each project ``technologies``, you may keep a **long** comma-separated list ordered **most JD-relevant / impressive first**; if overlong, JobRadar will **keep the first 7** tokens—when you shorten yourself, drop from the **end** of the list. Optionally tighten ``job_analysis`` and ``change_summary`` by a sentence or two if they are long.
+4. **Dossier truth** — Do **not** invent employers, metrics, or tools. Only shorten or tighten wording faithful to the current JSON.
 
-5. **Skills lines** — The input JSON already obeyed the rule that each line uses **only** tokens from the candidate’s dossier ``## Personal skills``. When compressing, **do not add** new skill tokens; you may only **remove** tokens or **reorder** among those already present. The app **trims tails** to **Languages** 4–6, **Frameworks** 5–7, **Tools** 5–7. When you shorten manually, drop **lowest job-relevance** from the **end**; do not alphabetize arbitrarily.
+5. **Skills** — Do **not** add new skill tokens; only remove or reorder tokens already present on each line.
 
-6. **Length** — Aim for bullets roughly **14–28 words** each after compression (shorter than the initial tailor band). Remove filler, stacked synonyms, and repeated stack mentions.
+6. **Summary & competencies** — You may shorten `professional_summary` and trim `core_competencies` from the end if needed.
 
-7. **Titles** — Keep ``dossier_source``, ``name``/``subtitle`` or ``title`` rules consistent with the input (one em dash in the resume line; no new subtitles invented). Keep ``best_title`` to **at most two words** (role only, no candidate name).
+7. **`best_title`** — At most **two** words, role only.
 
-8. **Dates** — Keep each ``date_range`` as **``Month Year``**, **``Month Year - Month Year``**, or **``Month Year - Present``** only; do not introduce quarters, year-only, or prose labels.
+8. **`change_summary`** — Keep as a list of strings (may shorten entries).
 
-Return the **complete** revised JSON object, not a diff.
+Return the **complete** revised JSON object.
