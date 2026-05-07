@@ -12,7 +12,7 @@ from pathlib import Path
 
 import anyio
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -72,6 +72,10 @@ class AddCompanyRequest(BaseModel):
     website: str | None = None
 
 
+class TailorPdfBody(BaseModel):
+    docx_base64: str
+
+
 class TailorFromTextBody(BaseModel):
     """Paste-a-JD tailoring: same Ollama path as listing-based tailor."""
 
@@ -79,12 +83,15 @@ class TailorFromTextBody(BaseModel):
     company: str = Field(default="", max_length=300)
     job_description: str = Field(..., min_length=1, max_length=120_000)
     model: str | None = Field(default=None, max_length=200)
+    # Dashboard overrides (omit to use config/settings.yaml).
+    tailor_think: bool | None = None
 
 
 class TailorListingBody(BaseModel):
     """Optional body for listing-based tailor (model picker in dashboard)."""
 
     model: str | None = Field(default=None, max_length=200)
+    tailor_think: bool | None = None
 
 
 class RebuildProjectBody(BaseModel):
@@ -92,18 +99,12 @@ class RebuildProjectBody(BaseModel):
     date_range: str = ""
     technologies: str = ""
     bullets: list[str] = Field(default_factory=list)
-    dossier_source: str = ""
 
 
 class RebuildTailorBody(BaseModel):
     best_title: str = ""
-    professional_summary: str = ""
-    core_competencies: list[str] = Field(default_factory=list)
-    experience: list[RebuildProjectBody] = Field(default_factory=list)
     projects: list[RebuildProjectBody] = Field(default_factory=list)
     skills: dict[str, str] = Field(default_factory=dict)
-    job_analysis: str = ""
-    change_summary: list[str] = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -113,27 +114,91 @@ class RebuildTailorBody(BaseModel):
 
 def _tailor_models_meta(settings: dict) -> tuple[list[dict[str, str]], str]:
     """Return (tailor_models, default_tailor_model) for dashboard picker."""
+    raw_list = settings.get("ollama_tailor_models")
     raw_tailor = settings.get("ollama_tailor_model")
     tailor_model = raw_tailor.strip() if isinstance(raw_tailor, str) and raw_tailor.strip() else ""
     scoring_model = str(settings.get("ollama_model", "qwen3:14b")).strip() or "qwen3:14b"
     models: list[dict[str, str]] = []
-    if tailor_model:
-        models.append({"id": tailor_model, "label": tailor_model})
-    if scoring_model and scoring_model != tailor_model:
-        models.append({"id": scoring_model, "label": scoring_model})
+    seen: set[str] = set()
+
+    def add(mid: str) -> None:
+        s = mid.strip()
+        if not s or s in seen:
+            return
+        seen.add(s)
+        models.append({"id": s, "label": s})
+
+    if isinstance(raw_list, list) and raw_list:
+        for item in raw_list:
+            if isinstance(item, str) and item.strip():
+                add(item.strip())
+        if tailor_model:
+            add(tailor_model)
+    else:
+        if tailor_model:
+            add(tailor_model)
+
+    add(scoring_model)
+
     if not models:
-        models.append({"id": scoring_model, "label": scoring_model})
-    default = tailor_model if tailor_model else scoring_model
+        add(scoring_model)
+
+    if tailor_model and tailor_model in seen:
+        default = tailor_model
+    elif isinstance(raw_list, list) and raw_list:
+        default = models[0]["id"]
+    else:
+        default = models[0]["id"] if models else scoring_model
     return models, default
 
 
-def _settings_with_tailor_model_override(settings: dict, model: str | None) -> dict:
-    """Shallow copy of settings; set ollama_tailor_model when model is non-empty."""
-    if model is None or not str(model).strip():
-        return settings
-    out = dict(settings)
-    out["ollama_tailor_model"] = str(model).strip()
+def _settings_with_tailor_request_overrides(
+    settings: dict,
+    *,
+    model: str | None = None,
+    tailor_think: bool | None = None,
+) -> dict:
+    """Copy settings only when needed; apply dashboard request overrides for one tailor session."""
+    changed = False
+    out = settings
+    if model is not None and str(model).strip():
+        out = dict(settings)
+        changed = True
+        out["ollama_tailor_model"] = str(model).strip()
+
+    def _ensure_mutable() -> None:
+        nonlocal out, changed
+        if not changed:
+            out = dict(settings)
+            changed = True
+
+    if tailor_think is not None:
+        _ensure_mutable()
+        out["ollama_tailor_think"] = bool(tailor_think)
     return out
+
+
+def _apply_tailor_request_body_settings(settings: dict, body) -> dict:
+    """Merge Pydantic tailor body fields into settings for Ollama calls."""
+    return _settings_with_tailor_request_overrides(
+        settings,
+        model=getattr(body, "model", None),
+        tailor_think=getattr(body, "tailor_think", None),
+    )
+
+
+def _tailor_ui_defaults_from_settings(settings: dict) -> dict[str, object]:
+    """Initial values for dashboard tailor options (checkboxes / numeric)."""
+    raw_t = settings.get("ollama_tailor_think")
+    if isinstance(raw_t, bool):
+        think = raw_t
+    elif isinstance(raw_t, str):
+        think = raw_t.strip().lower() in ("1", "true", "yes", "on")
+    else:
+        think = False
+    return {
+        "tailor_think": think,
+    }
 
 
 @app.get("/api/meta")
@@ -165,6 +230,7 @@ async def get_meta(request: Request):
         "listing_count": listing_count,
         "tailor_models": tailor_models,
         "default_tailor_model": default_tailor_model,
+        "tailor_ui_defaults": _tailor_ui_defaults_from_settings(settings),
     }
 
 
@@ -262,17 +328,18 @@ async def rescore_listing(listing_id: int, request: Request):
 
 @app.post("/api/listings/{listing_id}/tailor-resume")
 async def tailor_listing_resume(listing_id: int, body: TailorListingBody, request: Request):
-    """Run Ollama resume tailoring; returns JSON with preview + base64 PDF (ATS layout)."""
+    """Run Ollama resume tailoring; returns JSON with preview + base64 .docx (Word XML in template slots)."""
     from pipeline.resume_tailor import (
         dossier_path,
         load_full_name_for_profile,
+        resume_docx_path,
         tailor_resume,
         tailor_result_to_api_dict,
     )
 
     dpath: Path = request.app.state.db_path
     profile_id: str = request.app.state.profile_id
-    settings = _settings_with_tailor_model_override(request.app.state.settings, body.model)
+    settings = _apply_tailor_request_body_settings(request.app.state.settings, body)
 
     with connect(dpath) as conn:
         row = get_listing_by_id(conn, listing_id)
@@ -305,6 +372,7 @@ async def tailor_listing_resume(listing_id: int, body: TailorListingBody, reques
 
     result, tailor_err = await anyio.to_thread.run_sync(_run)
     if result is None:
+        rpath = resume_docx_path(profile_id, settings)
         dpath_dossier = dossier_path(profile_id, settings)
         om = settings.get("ollama_tailor_model") or settings.get("ollama_model")
         raise HTTPException(
@@ -314,9 +382,10 @@ async def tailor_listing_resume(listing_id: int, body: TailorListingBody, reques
                 "reason": tailor_err or "Unknown tailoring error.",
                 "paths": {
                     "experience_dossier": str(dpath_dossier),
+                    "resume_template": str(rpath),
                 },
                 "ollama_model": om if isinstance(om, str) else str(om),
-                "debug_hint": "Check API logs for 'Tailor attempt' / 'Tailor failed'. For PDF errors, run: playwright install chromium",
+                "debug_hint": "Check the API server log for lines starting with 'Tailor attempt' or 'Tailor failed'.",
             },
         )
 
@@ -329,12 +398,13 @@ async def tailor_resume_from_text(body: TailorFromTextBody, request: Request):
     from pipeline.resume_tailor import (
         dossier_path,
         load_full_name_for_profile,
+        resume_docx_path,
         tailor_resume,
         tailor_result_to_api_dict,
     )
 
     profile_id: str = request.app.state.profile_id
-    settings = _settings_with_tailor_model_override(request.app.state.settings, body.model)
+    settings = _apply_tailor_request_body_settings(request.app.state.settings, body)
 
     desc = strip_html_to_plain(body.job_description).strip()
     if len(desc) < 40:
@@ -353,10 +423,18 @@ async def tailor_resume_from_text(body: TailorFromTextBody, request: Request):
 
     def _run():
         full_name = load_full_name_for_profile(profile_id, settings)
-        return tailor_resume(desc, title, company, profile_id, full_name, settings)
+        return tailor_resume(
+            desc,
+            title,
+            company,
+            profile_id,
+            full_name,
+            settings,
+        )
 
     result, tailor_err = await anyio.to_thread.run_sync(_run)
     if result is None:
+        rpath = resume_docx_path(profile_id, settings)
         dpath_dossier = dossier_path(profile_id, settings)
         om = settings.get("ollama_tailor_model") or settings.get("ollama_model")
         raise HTTPException(
@@ -366,9 +444,10 @@ async def tailor_resume_from_text(body: TailorFromTextBody, request: Request):
                 "reason": tailor_err or "Unknown tailoring error.",
                 "paths": {
                     "experience_dossier": str(dpath_dossier),
+                    "resume_template": str(rpath),
                 },
                 "ollama_model": om if isinstance(om, str) else str(om),
-                "debug_hint": "Check API logs for 'Tailor attempt' / 'Tailor failed'. For PDF errors, run: playwright install chromium",
+                "debug_hint": "Check the API server log for lines starting with 'Tailor attempt' or 'Tailor failed'.",
             },
         )
 
@@ -377,10 +456,10 @@ async def tailor_resume_from_text(body: TailorFromTextBody, request: Request):
 
 @app.post("/api/tailor/rebuild")
 async def tailor_rebuild(body: RebuildTailorBody, request: Request):
-    """Rebuild tailored ATS PDF from edited preview fields (no initial tailor LLM)."""
+    """Rebuild tailored .docx from edited preview fields (no initial tailor LLM)."""
     import base64
 
-    from pipeline.resume_tailor import load_full_name_for_profile, rebuild_tailored_pdf_from_edits
+    from pipeline.resume_tailor import load_full_name_for_profile, rebuild_docx_from_edits
 
     profile_id: str = request.app.state.profile_id
     settings = request.app.state.settings
@@ -388,32 +467,53 @@ async def tailor_rebuild(body: RebuildTailorBody, request: Request):
 
     data: dict = {
         "best_title": body.best_title,
-        "professional_summary": body.professional_summary,
-        "core_competencies": list(body.core_competencies),
-        "experience": [p.model_dump() for p in body.experience],
         "projects": [p.model_dump() for p in body.projects],
         "skills": dict(body.skills),
-        "job_analysis": body.job_analysis,
-        "change_summary": list(body.change_summary),
     }
 
     def _run() -> tuple[bytes, str, dict]:
-        return rebuild_tailored_pdf_from_edits(data, profile_id, full_name, settings)
+        return rebuild_docx_from_edits(data, profile_id, full_name, settings)
 
     try:
-        pdf_bytes, filename, meta = await anyio.to_thread.run_sync(_run)
+        docx_bytes, filename, meta = await anyio.to_thread.run_sync(_run)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=f"Resume template not found: {e}") from e
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
-    except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=str(e)) from e
 
     return {
         "filename": filename,
-        "pdf_base64": base64.b64encode(pdf_bytes).decode("ascii"),
+        "docx_base64": base64.b64encode(docx_bytes).decode("ascii"),
         "tailored": meta["tailored"],
         "explanation": meta["explanation"],
         "ollama_metrics": meta.get("ollama_metrics", {}),
     }
+
+
+@app.post("/api/tailor/convert-pdf")
+async def tailor_convert_pdf(body: TailorPdfBody):
+    """Convert a tailored .docx (base64) to PDF using LibreOffice."""
+    import base64
+
+    from dashboard.pdf_convert import docx_bytes_to_pdf
+
+    try:
+        raw = base64.b64decode(body.docx_base64, validate=True)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid base64 docx payload") from None
+
+    def _convert() -> bytes:
+        return docx_bytes_to_pdf(raw)
+
+    try:
+        pdf = await anyio.to_thread.run_sync(_convert)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    except Exception as e:
+        logger.exception("PDF conversion failed")
+        raise HTTPException(status_code=500, detail=f"PDF conversion failed: {e}") from e
+
+    return Response(content=pdf, media_type="application/pdf")
 
 
 # ---------------------------------------------------------------------------

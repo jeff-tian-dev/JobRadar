@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from './api'
-import type { Meta, TailorResult } from './types'
+import type { Meta, TailorGenerateOptions, TailorResult } from './types'
 import { ListingsPage } from './pages/ListingsPage'
 import { CompaniesPage } from './pages/CompaniesPage'
 import { PasteJobTailorModal, type PastedJobSource } from './components/tailor/PasteJobTailorModal'
@@ -39,17 +39,21 @@ export function App() {
   }, [])
 
   const handlePasteGenerate = useCallback(
-    async (model: string) => {
+    async (opts: TailorGenerateOptions) => {
       if (!pasteTailorSource) return
-      setPasteGenerating(true)
+      const { model, ...llm } = opts
       setPasteTailorError(null)
+      setPasteGenerating(true)
       try {
-        const result = await api.tailorResumeFromText({
-          job_title: pasteTailorSource.jobTitle,
-          company: pasteTailorSource.company || undefined,
-          job_description: pasteTailorSource.jobDescription,
-          model,
-        })
+        const result = await api.tailorResumeFromText(
+          {
+            job_title: pasteTailorSource.jobTitle,
+            company: pasteTailorSource.company || undefined,
+            job_description: pasteTailorSource.jobDescription,
+            model,
+          },
+          llm,
+        )
         setPasteTailorResult(result)
       } catch (e) {
         const msg =
@@ -150,6 +154,7 @@ export function App() {
         result={pasteTailorResult}
         onClose={closePasteTailorPreview}
         onGenerate={handlePasteGenerate}
+        tailorUiDefaults={meta?.tailor_ui_defaults ?? null}
         availableModels={pasteTailorModels}
         defaultModel={pasteDefaultModel}
         generating={pasteGenerating}

@@ -10,7 +10,7 @@ fi
 
 # Start FastAPI backend
 echo "Starting FastAPI backend on :8000..."
-.venv/bin/uvicorn dashboard.api:app --reload --port 8000 &
+.venv/bin/python -m uvicorn dashboard.api:app --reload --port 8000 &
 BACKEND_PID=$!
 
 # Give backend a moment to start

@@ -19,8 +19,6 @@ Typical keys:
 - **`ollama_model`**, **`ollama_host`**, **`ollama_timeout_seconds`** — inference endpoint and model name.
 - **`ollama_tailor_temperature`**, **`ollama_tailor_timeout_seconds`**, **`ollama_tailor_num_predict`** (optional) — dashboard resume tailoring; lower temperature (e.g. **0.28**) yields more consistent bullets than high values.
 - **`ollama_tailor_think`** (optional, auto-detected) — `true` enables Ollama thinking mode so the model reasons through project scoring before emitting JSON (thinking logged to `pipeline.log`). Default: `true` for `qwen3:*` models, off for all others.
-- **`tailor_enforce_one_page`** (default **true**) — after tailoring, PDF page count + optional LLM “compress” passes until one page or max attempts; needs LibreOffice + **pypdf**.
-- **`tailor_one_page_max_trim_attempts`**, **`tailor_pdf_convert_timeout_seconds`**, **`ollama_tailor_fit_one_page_num_predict`**, **`ollama_tailor_fit_one_page_temperature`** (optional) — tune the one-page loop; see `settings.example.yaml`.
 - **`max_listing_age_days`** — default **7**: skip scraped rows whose **posted** date parses and is **strictly older** than this many days (e.g. 8+ days ago when set to 7). Set to **`null`** to disable (unknown/missing posted dates are never skipped by this rule).
 - **`profiles.<id>.ntfy_topic`** — ntfy topic name (not the full URL).
 - **`profiles.<id>.slack_webhook_url`**, **`smtp_*`** — optional; see example file.

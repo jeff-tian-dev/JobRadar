@@ -198,8 +198,6 @@ The dashboard **Tailor resume** action fills your Word template from the **exper
 
 **Richer dossier → richer bullets:** Under each project in `experience-dossier.md`, flesh out **`### Outcomes`** and **`### What I built / did`** with numbers, scale, and tools the model is allowed to quote. Thin sections produce shorter, more generic lines no matter how strict the prompt is.
 
-**One-page PDF:** With **`tailor_enforce_one_page: true`** (default in `settings.example.yaml`), after the main tailor pass the pipeline exports the docx to PDF via LibreOffice, counts pages with **pypdf**, and if there is more than one page it runs a **compress** LLM pass (same bullet *counts*, shorter text / merged ideas) up to **`tailor_one_page_max_trim_attempts`** times. Requires **LibreOffice** installed; if `soffice` is missing, tailoring still works but the trim loop is skipped. Set **`tailor_enforce_one_page: false`** to disable.
-
 ---
 
 ## 8. Modifying the code

@@ -1,4 +1,4 @@
-"""Tailor résumé via Ollama JSON → ATS HTML → Playwright PDF (Career-Ops–style layout)."""
+"""Tailor resume .docx via ollama JSON and direct WordprocessingML edits."""
 
 from __future__ import annotations
 
@@ -25,10 +25,6 @@ from pipeline.config_paths import (
     prompts_dir,
     read_ollama_repeat_penalty,
 )
-from pipeline.ats_pdf import tailored_json_to_pdf_bytes
-from pipeline.ats_tailor_caps import ats_tailor_caps
-from pipeline.ats_tailor_prepare import normalize_ats_date_ranges, prepare_ats_tailor_lists
-from pipeline.ats_tailor_validate import validate_ats_tailor_response
 from pipeline.models import (
     log_ollama_metrics,
     log_tailor_session_ollama_summary,
@@ -529,19 +525,6 @@ def original_preview_from_tailor_slots(llm_data: dict[str, Any]) -> dict[str, An
     return {"projects": projects, "skills": {}}
 
 
-def build_original_preview_ats(dossier_text: str) -> dict[str, Any]:
-    """Original / 'before' view: dossier ## headings as empty project shells; no experience."""
-    base = dossier_to_original_preview(dossier_text)
-    return {
-        "experience": [],
-        "projects": base.get("projects") or [],
-        "professional_summary": "",
-        "core_competencies": [],
-        "skills": base.get("skills") or {},
-        "best_title": "",
-    }
-
-
 def extraction_to_preview_dict(ext: ResumeExtraction) -> dict[str, Any]:
     """Structured template slots for dashboard diff (plain text from the .docx)."""
     projects = []
@@ -598,6 +581,45 @@ def _normalize_project_date_ranges_in_data(data: dict[str, Any]) -> None:
 
 # Split on em/en dash or spaced hyphen (not bare hyphens inside tokens).
 _DASH_SPLIT_RE = re.compile(r"\s*(?:\u2014|\u2013|–)\s*|\s+-\s+")
+
+# LLMs sometimes echo dossier-style headings into project bullets or tech lines.
+# Handles ``Coursework: …``, ``**Coursework:** …`` (markdown bold ends after the colon), and dash separators.
+_COURSEWORK_LIKE_PREFIX_RE = re.compile(
+    r"(?i)^(?:(?:\*\*)?\s*(?:relevant\s+coursework|coursework)\s*:\s*(?:\*\*)?\s*"
+    r"|(?:\*\*)?\s*(?:relevant\s+coursework|coursework)\s*(?:\*\*)?\s*[—–\-]\s*)"
+)
+
+
+def _strip_leading_coursework_label(text: str) -> str:
+    """Drop a leading ``Coursework:`` / ``Relevant coursework:`` prefix; keep rest unchanged."""
+    t = str(text).strip()
+    if not t:
+        return t
+    u = _COURSEWORK_LIKE_PREFIX_RE.sub("", t).strip()
+    return u if u else t
+
+
+def _strip_coursework_labels_from_tailor_payload(data: dict[str, Any]) -> None:
+    """Mutate tailor JSON in place: remove redundant coursework labels from strings the model may misplace."""
+    projs = data.get("projects")
+    if isinstance(projs, list):
+        for p in projs:
+            if not isinstance(p, dict):
+                continue
+            tech = p.get("technologies")
+            if isinstance(tech, str) and tech.strip():
+                p["technologies"] = _strip_leading_coursework_label(tech)
+            raw = p.get("bullets")
+            if isinstance(raw, list):
+                for i, b in enumerate(raw):
+                    if isinstance(b, str) and b.strip():
+                        raw[i] = _strip_leading_coursework_label(b)
+    sk = data.get("skills")
+    if isinstance(sk, dict):
+        for key in ("Languages", "Frameworks & Libraries", "Tools & Technologies"):
+            v = sk.get(key)
+            if isinstance(v, str) and v.strip():
+                sk[key] = _strip_leading_coursework_label(v)
 
 
 def _split_resume_header_line(text: str) -> tuple[str, str]:
@@ -947,6 +969,7 @@ def _prepare_tailor_llm_lists_for_resume(data: dict[str, Any]) -> None:
     The model should order each comma-separated list **most relevant and impressive → least**;
     we **keep the prefix** and **drop the tail** so JD-critical tokens survive.
     """
+    _strip_coursework_labels_from_tailor_payload(data)
     sk = data.get("skills")
     if isinstance(sk, dict):
         _clamp_tailor_skills_over_max(sk)
@@ -1113,29 +1136,22 @@ def _preview_project_title(p: dict[str, Any]) -> str:
     return ""
 
 
-def _preview_block(p: dict[str, Any]) -> dict[str, Any]:
-    title = _preview_project_title(p)
-    bullets = [str(b).strip() for b in p.get("bullets", []) if isinstance(b, str) and str(b).strip()]
-    ds = str(p.get("dossier_source", "")).strip()
-    return {
-        "title": title,
-        "date_range": _normalize_tailor_date_range(str(p.get("date_range", "")).strip()),
-        "technologies": str(p.get("technologies", "")).strip(),
-        "bullets": bullets,
-        "dossier_source": ds or title,
-    }
-
-
 def llm_json_to_tailored_preview(data: dict[str, Any]) -> dict[str, Any]:
-    """Tailored résumé fields for API + dashboard (ATS JSON shape)."""
-    experience: list[dict[str, Any]] = []
-    for p in data.get("experience", []) or []:
-        if isinstance(p, dict):
-            experience.append(_preview_block(p))
-    projects: list[dict[str, Any]] = []
-    for p in data.get("projects", []) or []:
-        if isinstance(p, dict):
-            projects.append(_preview_block(p))
+    """Tailored projects + skills + best_title for API (strings as returned by LLM)."""
+    projects = []
+    for p in data.get("projects", []):
+        if not isinstance(p, dict):
+            continue
+        title = _preview_project_title(p)
+        bullets = [str(b).strip() for b in p.get("bullets", []) if isinstance(b, str) and str(b).strip()]
+        projects.append(
+            {
+                "title": title,
+                "date_range": _normalize_tailor_date_range(str(p.get("date_range", "")).strip()),
+                "technologies": str(p.get("technologies", "")).strip(),
+                "bullets": bullets,
+            }
+        )
     skills_obj = data.get("skills")
     skills: dict[str, str] = {}
     if isinstance(skills_obj, dict):
@@ -1143,13 +1159,8 @@ def llm_json_to_tailored_preview(data: dict[str, Any]) -> dict[str, Any]:
             v = skills_obj.get(key)
             if isinstance(v, str):
                 skills[key] = v.strip()
-    cc_raw = data.get("core_competencies") or []
-    core_competencies = [str(c).strip() for c in cc_raw if isinstance(c, str) and str(c).strip()]
     return {
-        "experience": experience,
         "projects": projects,
-        "professional_summary": str(data.get("professional_summary", "")).strip(),
-        "core_competencies": core_competencies,
         "skills": skills,
         "best_title": str(data.get("best_title", "")).strip(),
     }
@@ -1223,19 +1234,17 @@ def _model_supports_thinking(model: str) -> bool:
 
 
 def _tailor_think_param(settings: dict[str, Any], model: str) -> bool | None:
-    """Return ``True`` to enable Ollama's ``think`` API for the tailor call, ``None`` to leave default.
+    """Return the ``think`` kwarg for the Ollama tailor chat call.
 
-    Auto-detection: Qwen 3 models get ``True`` so the model reasons through project
-    scoring before emitting JSON (thinking goes into ``message.thinking``, content stays
-    clean JSON). Other models get ``None`` (server default). Override via
-    ``ollama_tailor_think`` in settings (``true`` / ``false``).
+    - ``True`` / ``False`` — explicit enable/disable (dashboard checkbox sets this).
+    - ``None`` — omit the parameter (non-thinking models); Qwen 3 defaults to thinking when omitted, so we pass ``True`` for those when no override is set.
     """
     override = settings.get("ollama_tailor_think")
     if override is not None:
         if isinstance(override, bool):
-            return override or None
+            return True if override else False
         if isinstance(override, str):
-            return True if override.strip().lower() in ("1", "true", "yes", "on") else None
+            return True if override.strip().lower() in ("1", "true", "yes", "on") else False
     return True if _model_supports_thinking(model) else None
 
 
@@ -1256,40 +1265,6 @@ def _parse_tailor_raw(
         return None, f"validation_failed:{vreason}", thinking
     _normalize_project_date_ranges_in_data(obj)
     _apply_tailor_explanation_defaults(obj, expected_projects)
-    return obj, "", thinking
-
-
-def _apply_ats_tailor_explanation_defaults(data: dict[str, Any]) -> None:
-    ja = data.get("job_analysis")
-    if not isinstance(ja, str) or not ja.strip():
-        data["job_analysis"] = "No analysis available."
-    cs = data.get("change_summary")
-    if not isinstance(cs, list) or len(cs) == 0:
-        data["change_summary"] = ["Tailoring notes not provided."]
-    else:
-        data["change_summary"] = [
-            str(x).strip() if isinstance(x, str) else "" for x in cs
-        ]
-
-
-def _parse_ats_tailor_raw(
-    raw: str, settings: dict[str, Any]
-) -> tuple[dict[str, Any] | None, str, str]:
-    """Parse and validate flexible ATS tailor JSON."""
-    cleaned, thinking = _strip_think_block(raw)
-    try:
-        obj = json.loads(_strip_json_fences(cleaned))
-    except json.JSONDecodeError as e:
-        return None, f"json_decode:{e}", thinking
-    if not isinstance(obj, dict):
-        return None, "not_a_dict", thinking
-    normalize_ats_date_ranges(obj)
-    prepare_ats_tailor_lists(obj)
-    caps = ats_tailor_caps(settings)
-    ok, vreason = validate_ats_tailor_response(obj, caps)
-    if not ok:
-        return None, f"validation_failed:{vreason}", thinking
-    _apply_ats_tailor_explanation_defaults(obj)
     return obj, "", thinking
 
 
@@ -1382,9 +1357,11 @@ def _tailor_pdf_convert_timeout(settings: dict[str, Any]) -> float:
 def call_tailor_fit_one_page_llm(
     current: dict[str, Any],
     pdf_page_count: int,
+    expected_projects: int,
+    bullets_per_slot: list[int],
     settings: dict[str, Any],
 ) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
-    """Return shorter validated ATS tailor JSON so the PDF fits one page.
+    """Return shorter validated tailor JSON so the resume is more likely to fit one PDF page.
 
     Second element is one metrics dict per ollama HTTP response (including failed parse attempts).
     """
@@ -1431,7 +1408,10 @@ def call_tailor_fit_one_page_llm(
         except (TypeError, ValueError):
             pass
 
-    system_prompt = _read_text(prompts_dir() / "resume_tailor_fit_one_page.txt")
+    system_prompt = _read_text(prompts_dir() / "resume_tailor_fit_one_page.txt").replace(
+        "{{num_projects}}", str(expected_projects)
+    )
+    bullets_slot_str = _format_bullets_per_slot(bullets_per_slot)
     try:
         current_json = json.dumps(current, ensure_ascii=False)
     except (TypeError, ValueError):
@@ -1439,8 +1419,10 @@ def call_tailor_fit_one_page_llm(
         return None, []
 
     user_template = _read_text(prompts_dir() / "resume_tailor_fit_one_page_user.txt")
-    user_prompt = user_template.replace("{{pdf_page_count}}", str(pdf_page_count)).replace(
-        "{{current_json}}", current_json
+    user_prompt = (
+        user_template.replace("{{pdf_page_count}}", str(pdf_page_count))
+        .replace("{{bullets_per_slot}}", bullets_slot_str)
+        .replace("{{current_json}}", current_json)
     )
 
     think_param = _tailor_think_param(settings, model)
@@ -1488,7 +1470,7 @@ def call_tailor_fit_one_page_llm(
         if not content:
             logger.error("Empty ollama one-page tailor response (num_predict=%s)", num_predict)
             continue
-        out, reason, _extra_think = _parse_ats_tailor_raw(str(content), settings)
+        out, reason, _extra_think = _parse_tailor_raw(str(content), expected_projects, bullets_per_slot)
         if out is not None:
             return out, metrics_runs
         logger.warning(
@@ -1500,55 +1482,436 @@ def call_tailor_fit_one_page_llm(
     return None, metrics_runs
 
 
-def _hydrate_rebuild_data_for_one_page_trim(data: dict[str, Any]) -> None:
-    """Set ``dossier_source`` on each experience/project block when missing (dashboard rebuild)."""
-    for key in ("experience", "projects"):
-        arr = data.get(key)
-        if not isinstance(arr, list):
+def _tailor_rhythm_polish_enabled(settings: dict[str, Any]) -> bool:
+    """Toggle for the 2-bullet-shorten polish pass after the initial tailor call."""
+    v = settings.get("ollama_tailor_rhythm_polish_enabled", True)
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, (int, float)):
+        return v != 0
+    if isinstance(v, str):
+        return v.strip().lower() in ("1", "true", "yes", "on")
+    return True
+
+
+_RHYTHM_SHORT_CHAR_CAP = 125  # practical validator cap — prompt asks for 85-110
+
+
+def _count_short_bullets_at_target_indices(
+    data: dict[str, Any], bullets_per_slot: list[int]
+) -> list[int]:
+    """Count bullets that are already short AND at one of the project's target (odd) indices.
+
+    Skipping the polish pass is only safe when the target positions already read as short — if
+    bullet 0 happens to be short but target bullets 1/3 are long, we still need to run the pass
+    to get the desired long-short-long-short visual.
+    """
+    out: list[int] = []
+    projs = data.get("projects")
+    if not isinstance(projs, list):
+        return out
+    for idx, p in enumerate(projs):
+        slot_len = bullets_per_slot[idx] if idx < len(bullets_per_slot) else 0
+        targets = set(_rhythm_target_indices(slot_len))
+        if not isinstance(p, dict):
+            out.append(0)
             continue
-        for p in arr:
-            if not isinstance(p, dict):
-                continue
-            ds = p.get("dossier_source")
-            if isinstance(ds, str) and ds.strip():
-                continue
-            title = p.get("title")
-            p["dossier_source"] = (
-                title.strip() if isinstance(title, str) and title.strip() else "Resume block"
-            )
+        bullets = p.get("bullets") or []
+        if not isinstance(bullets, list):
+            out.append(0)
+            continue
+        count = 0
+        for bidx, b in enumerate(bullets):
+            if bidx in targets and isinstance(b, str) and len(b.strip()) <= _RHYTHM_SHORT_CHAR_CAP:
+                count += 1
+        out.append(count)
+    return out
 
 
-def _maybe_trim_ats_tailor_to_one_page(
-    llm_data: dict[str, Any],
-    profile_id: str,
-    full_name: str,
+_RHYTHM_EDITS_PER_PROJECT = 2
+
+
+def _rhythm_target_indices(bullets_in_slot: int) -> list[int]:
+    """Return the bullet indices the polish pass is allowed to shorten for one project.
+
+    Pattern: long-long-short-short — the first half of a project's bullets stay long (lead +
+    runner-up for scanning), and the back half gets shortened for visual rhythm. For 4-bullet
+    slots this targets indices 2 and 3.
+    """
+    if bullets_in_slot <= 1:
+        return []
+    if bullets_in_slot == 2:
+        return [1]
+    if bullets_in_slot == 3:
+        return [2]  # long, long, short
+    if bullets_in_slot == 4:
+        return [2, 3]
+    # 5+ bullets: shorten the last two to maintain the back-half-short rhythm.
+    return [bullets_in_slot - 2, bullets_in_slot - 1]
+
+
+def _parse_rhythm_polish_edits(
+    raw: str,
+    expected_projects: int,
+    bullets_per_slot: list[int],
+    target_indices_per_project: list[list[int]],
+) -> tuple[list[dict[str, Any]] | None, str, list[str]]:
+    """Parse the rhythm-polish LLM response. Partial acceptance: keep valid edits, drop bad ones.
+
+    Returns ``(edits, reason, warnings)``:
+      - ``edits``: list of validated edits (possibly fewer than the model emitted), or ``None`` if
+        the response is unparseable or no project got at least one valid edit.
+      - ``reason``: short label when ``edits`` is ``None``; empty string on success.
+      - ``warnings``: per-edit reasons for dropped entries (logged by caller).
+    """
+    cleaned = _strip_json_fences(raw.strip())
+    try:
+        obj = json.loads(cleaned)
+    except json.JSONDecodeError as e:
+        return None, f"json_decode:{e}", []
+    if not isinstance(obj, dict):
+        return None, "not_a_dict", []
+    edits = obj.get("edits")
+    if not isinstance(edits, list) or not edits:
+        return None, "missing_or_empty_edits_list", []
+
+    seen_per_project: dict[int, set[int]] = {}
+    clean: list[dict[str, Any]] = []
+    warnings: list[str] = []
+
+    allowed_by_project: list[set[int]] = [set(t) for t in target_indices_per_project]
+    remap_by_project: list[dict[int, int]] = []
+    for targets in target_indices_per_project:
+        # Map common off-by-one values (e.g. even indices) to the closest allowed odd target. We
+        # do this so the model's new_text—which was written for a specific bullet—still lands on
+        # roughly the right coordinate even if it chose index 0 or 2 for a 4-bullet project.
+        remap: dict[int, int] = {}
+        for t in targets:
+            if t - 1 >= 0:
+                remap.setdefault(t - 1, t)
+            remap.setdefault(t + 1, t)
+        remap_by_project.append(remap)
+
+    for i, e in enumerate(edits):
+        if not isinstance(e, dict):
+            warnings.append(f"edit[{i}]: not an object")
+            continue
+        try:
+            p = int(e.get("project_idx"))
+            b = int(e.get("bullet_idx"))
+        except (TypeError, ValueError):
+            warnings.append(f"edit[{i}]: project_idx/bullet_idx not integers")
+            continue
+        if not (0 <= p < expected_projects):
+            warnings.append(f"edit[{i}]: project_idx {p} out of range 0..{expected_projects - 1}")
+            continue
+        slot_len = bullets_per_slot[p]
+        # Tolerate the common 1-indexed off-by-one by clamping only when b equals slot_len
+        # (i.e. the model meant "last bullet"). Everything else out of range is rejected.
+        if b == slot_len:
+            warnings.append(f"edit[{i}]: project {p} bullet_idx {b} appears 1-indexed — remapped to {slot_len - 1}")
+            b = slot_len - 1
+        if not (0 <= b < slot_len):
+            warnings.append(f"edit[{i}]: bullet_idx {b} out of slot {p} range 0..{slot_len - 1}")
+            continue
+        allowed = allowed_by_project[p] if p < len(allowed_by_project) else set()
+        if allowed and b not in allowed:
+            remap = remap_by_project[p] if p < len(remap_by_project) else {}
+            target_set = allowed - seen_per_project.get(p, set())
+            if b in remap and remap[b] in target_set:
+                warnings.append(f"edit[{i}]: project {p} bullet_idx {b} off-target — remapped to {remap[b]}")
+                b = remap[b]
+            elif target_set:
+                new_b = sorted(target_set)[0]
+                warnings.append(f"edit[{i}]: project {p} bullet_idx {b} not in allowed {sorted(allowed)} — remapped to {new_b}")
+                b = new_b
+            else:
+                warnings.append(f"edit[{i}]: project {p} bullet_idx {b} not in allowed {sorted(allowed)} and all targets filled (dropped)")
+                continue
+        t = e.get("new_text")
+        if not isinstance(t, str) or not t.strip():
+            warnings.append(f"edit[{i}]: new_text empty or non-string")
+            continue
+        t = t.strip()
+        if "\n" in t or "\r" in t:
+            warnings.append(f"edit[{i}]: new_text contains newline")
+            continue
+        if len(t) > _RHYTHM_SHORT_CHAR_CAP:
+            warnings.append(f"edit[{i}]: new_text {len(t)} chars > {_RHYTHM_SHORT_CHAR_CAP} (dropped)")
+            continue
+        if b in seen_per_project.get(p, set()):
+            warnings.append(f"edit[{i}]: duplicate bullet_idx {b} for project {p} (dropped)")
+            continue
+        seen_per_project.setdefault(p, set()).add(b)
+        clean.append({"project_idx": p, "bullet_idx": b, "new_text": t})
+
+    if not clean:
+        return None, "no_valid_edits", warnings
+    # Partial wins are better than nothing: accept any valid edits even if some projects got
+    # none. Missing projects are logged so their longs stay untouched — the resume still ends up
+    # with visible rhythm in the projects the model succeeded on.
+    missing = [p for p in range(expected_projects) if not seen_per_project.get(p)]
+    if missing:
+        warnings.append(f"no valid edits for project(s) {missing} — those bullets stay as-is")
+    return clean, "", warnings
+
+
+def _apply_rhythm_edits(data: dict[str, Any], edits: list[dict[str, Any]]) -> dict[str, Any]:
+    """Return a deep-ish copy of ``data`` with the listed bullets replaced. Non-bullet fields untouched."""
+    out = copy.deepcopy(data)
+    projs = out.get("projects") or []
+    for e in edits:
+        p = e["project_idx"]
+        b = e["bullet_idx"]
+        if 0 <= p < len(projs) and isinstance(projs[p], dict):
+            bullets = projs[p].get("bullets")
+            if isinstance(bullets, list) and 0 <= b < len(bullets):
+                bullets[b] = e["new_text"]
+    return out
+
+
+def call_tailor_rhythm_polish_llm(
+    current: dict[str, Any],
+    expected_projects: int,
+    bullets_per_slot: list[int],
     settings: dict[str, Any],
-    initial_pdf_bytes: bytes,
+) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
+    """Second pass: LLM returns an ``{"edits": [...]}`` object; we splice shortened bullets into ``current``.
+
+    Returns ``(updated_data or None, per-call ollama metrics)``. On any failure the caller should
+    fall back to ``current`` unchanged—this pass is best-effort cosmetics, never required.
+    """
+    model = _tailor_ollama_model(settings)
+    host = str(settings.get("ollama_host", "http://127.0.0.1:11434"))
+
+    polish_predict_raw = settings.get("ollama_tailor_rhythm_num_predict")
+    if polish_predict_raw is not None:
+        try:
+            num_predict_a = max(512, min(_MAX_TAILOR_NUM_PREDICT, int(polish_predict_raw)))
+        except (TypeError, ValueError):
+            num_predict_a = 4096
+    else:
+        # Edits-only output is tiny (~2-3 KB); a modest budget is plenty and keeps the pass fast.
+        num_predict_a = 4096
+
+    predict_attempts = [num_predict_a]
+    if num_predict_a < 16384:
+        predict_attempts.append(min(num_predict_a * 2, 16384))
+
+    timeout = _tailor_client_timeout_seconds(settings, max(predict_attempts))
+
+    polish_temp = settings.get("ollama_tailor_rhythm_temperature")
+    if polish_temp is not None:
+        temperature = max(0.0, min(2.0, float(polish_temp)))
+    else:
+        # Shortening is a constrained task — prefer a lower temperature than the initial tailor
+        # call to reduce the model's tendency to pad edits back to the original length.
+        temperature = 0.15
+
+    base_options: dict[str, Any] = {
+        "temperature": temperature,
+        "repeat_penalty": read_ollama_repeat_penalty(settings),
+    }
+    num_ctx_raw = settings.get("ollama_tailor_num_ctx")
+    if num_ctx_raw is not None:
+        try:
+            nctx = int(num_ctx_raw)
+            if nctx > 0:
+                base_options["num_ctx"] = nctx
+        except (TypeError, ValueError):
+            pass
+
+    system_prompt = _read_text(prompts_dir() / "resume_tailor_rhythm.txt")
+    bullets_slot_str = _format_bullets_per_slot(bullets_per_slot)
+    target_indices_per_project = [_rhythm_target_indices(n) for n in bullets_per_slot]
+    targets_str = ", ".join(
+        f"project {p}: {targets}" for p, targets in enumerate(target_indices_per_project)
+    )
+    try:
+        current_json = json.dumps(current, ensure_ascii=False)
+    except (TypeError, ValueError):
+        logger.error("Failed to serialise tailor JSON for rhythm polish pass")
+        return None, []
+
+    user_template = _read_text(prompts_dir() / "resume_tailor_rhythm_user.txt")
+    user_prompt = (
+        user_template.replace("{{bullets_per_slot}}", bullets_slot_str)
+        .replace("{{target_indices}}", targets_str)
+        .replace("{{current_json}}", current_json)
+    )
+
+    think_param = _tailor_think_param(settings, model)
+
+    client = ollama.Client(host=host, timeout=timeout)
+    metrics_runs: list[dict[str, Any]] = []
+
+    for num_predict in predict_attempts:
+        opts = {**base_options, "num_predict": num_predict}
+        chat_kwargs: dict[str, Any] = dict(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            format="json",
+            options=opts,
+        )
+        if think_param is not None:
+            chat_kwargs["think"] = think_param
+        try:
+            resp = client.chat(**chat_kwargs)
+        except Exception:
+            logger.exception("Ollama rhythm polish request failed (num_predict=%s)", num_predict)
+            continue
+        thinking = _extract_thinking_from_response(resp)
+        if thinking:
+            logger.info("Rhythm polish thinking: %s", thinking[:2000])
+        m = ollama_response_metrics_dict(resp)
+        m.update({"phase": "rhythm_polish", "model": model, "num_predict": num_predict})
+        metrics_runs.append(m)
+        log_ollama_metrics(resp, f"rhythm-polish num_predict={num_predict}")
+        msg = getattr(resp, "message", None)
+        content = getattr(msg, "content", None) if msg is not None else None
+        if isinstance(resp, dict):
+            msg = resp.get("message") or {}
+            content = msg.get("content", content)
+        if not content:
+            logger.error("Empty ollama rhythm polish response (num_predict=%s)", num_predict)
+            continue
+        edits, reason, warns = _parse_rhythm_polish_edits(
+            str(content), expected_projects, bullets_per_slot, target_indices_per_project
+        )
+        for w in warns:
+            logger.info("Rhythm polish: %s", w)
+        if edits is not None:
+            out = _apply_rhythm_edits(current, edits)
+            logger.info(
+                "Rhythm polish: applied %s valid edit(s) across %s project(s)",
+                len(edits),
+                expected_projects,
+            )
+            return out, metrics_runs
+        logger.warning(
+            "Rhythm polish parse/validation failed (%s) num_predict=%s head=%r",
+            reason,
+            num_predict,
+            str(content)[:200].replace("\n", " "),
+        )
+    return None, metrics_runs
+
+
+def _apply_rhythm_polish_if_enabled(
+    llm_data: dict[str, Any],
+    bullets_per_slot: list[int],
+    expected_projects: int,
+    settings: dict[str, Any],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Run rhythm polish if enabled; return (possibly-updated data, metrics).
+
+    Silently returns the input unchanged (with an empty metrics list) when disabled, when the
+    initial tailor output already has short bullets, or when the polish LLM call fails to validate.
+    """
+    if not _tailor_rhythm_polish_enabled(settings):
+        return llm_data, []
+
+    shorts_at_targets = _count_short_bullets_at_target_indices(llm_data, bullets_per_slot)
+    target_counts = [len(_rhythm_target_indices(n)) for n in bullets_per_slot]
+    if shorts_at_targets and all(s >= t for s, t in zip(shorts_at_targets, target_counts)):
+        logger.info(
+            "Rhythm polish: skipping — each project's target positions already read short (%s vs target %s)",
+            shorts_at_targets,
+            target_counts,
+        )
+        return llm_data, []
+
+    logger.info(
+        "Rhythm polish: running — short bullets at target indices %s (target ≥%s each)",
+        shorts_at_targets,
+        target_counts,
+    )
+    polished, metrics = call_tailor_rhythm_polish_llm(
+        llm_data, expected_projects, bullets_per_slot, settings
+    )
+    if polished is None:
+        logger.warning("Rhythm polish: LLM call failed validation; keeping initial tailor output")
+        return llm_data, metrics
+    return polished, metrics
+
+
+def _hydrate_rebuild_data_for_one_page_trim(data: dict[str, Any]) -> None:
+    """Set ``dossier_source`` on each project when missing so one-page compress JSON validates.
+
+    Rebuild requests only send display fields; the compress LLM must echo ``dossier_source`` per
+    ``_validate_tailor_response``. We use the project title as a stable stand-in.
+    """
+    projs = data.get("projects")
+    if not isinstance(projs, list):
+        return
+    for p in projs:
+        if not isinstance(p, dict):
+            continue
+        ds = p.get("dossier_source")
+        if isinstance(ds, str) and ds.strip():
+            continue
+        title = p.get("title")
+        p["dossier_source"] = (
+            title.strip() if isinstance(title, str) and title.strip() else "Resume project"
+        )
+
+
+def _maybe_trim_tailored_resume_to_one_page(
+    docx_path: Path,
+    llm_data: dict[str, Any],
+    bullets_per_slot: list[int],
+    expected_projects: int,
+    settings: dict[str, Any],
+    initial_docx_bytes: bytes,
+    full_name: str = "",
 ) -> tuple[bytes, dict[str, Any], list[dict[str, Any]]]:
-    """If enabled, measure Playwright PDF pages and run compress LLM until one page or max rounds."""
+    """If enabled, convert to PDF and run compress LLM until one page or max rounds.
+
+    Third return value collects ollama metrics for each compress attempt (per HTTP response).
+    """
+    from pipeline.pdf_convert import docx_bytes_to_pdf, find_soffice
     from pipeline.pdf_pages import count_pdf_pages
 
     trim_metrics: list[dict[str, Any]] = []
 
     if not _tailor_enforce_one_page(settings):
-        return initial_pdf_bytes, llm_data, trim_metrics
+        return initial_docx_bytes, llm_data, trim_metrics
+
+    if find_soffice() is None:
+        logger.warning(
+            "tailor_enforce_one_page is on but LibreOffice (soffice) was not found; "
+            "skipping PDF page check and trim loop",
+        )
+        return initial_docx_bytes, llm_data, trim_metrics
 
     max_trims = _tailor_one_page_max_attempts(settings)
-    pdf_bytes = initial_pdf_bytes
-    data = llm_data
+    pdf_timeout = _tailor_pdf_convert_timeout(settings)
+    docx_bytes = initial_docx_bytes
     trim_round = 0
 
     while True:
         try:
+            pdf_bytes = docx_bytes_to_pdf(docx_bytes, timeout_seconds=pdf_timeout)
+        except Exception:
+            logger.exception(
+                "One-page enforcement: PDF conversion failed; keeping current tailored docx",
+            )
+            return docx_bytes, llm_data, trim_metrics
+        try:
             pages = count_pdf_pages(pdf_bytes)
         except Exception:
-            logger.exception("One-page enforcement: failed to count PDF pages")
-            return pdf_bytes, data, trim_metrics
+            logger.exception(
+                "One-page enforcement: failed to count PDF pages; keeping current tailored docx",
+            )
+            return docx_bytes, llm_data, trim_metrics
 
         if pages <= 1:
             if trim_round > 0:
                 logger.info("Tailor one-page trim succeeded after %s round(s)", trim_round)
-            return pdf_bytes, data, trim_metrics
+            return docx_bytes, llm_data, trim_metrics
 
         if trim_round >= max_trims:
             logger.warning(
@@ -1556,7 +1919,7 @@ def _maybe_trim_ats_tailor_to_one_page(
                 pages,
                 max_trims,
             )
-            return pdf_bytes, data, trim_metrics
+            return docx_bytes, llm_data, trim_metrics
 
         trim_round += 1
         logger.info(
@@ -1565,20 +1928,22 @@ def _maybe_trim_ats_tailor_to_one_page(
             trim_round,
             max_trims,
         )
-        shrunk, compress_runs = call_tailor_fit_one_page_llm(data, pages, settings)
+        shrunk, compress_runs = call_tailor_fit_one_page_llm(
+            llm_data,
+            pages,
+            expected_projects,
+            bullets_per_slot,
+            settings,
+        )
         for m in compress_runs:
             m["trim_round"] = trim_round
         trim_metrics.extend(compress_runs)
         if shrunk is None:
             logger.warning("One-page compress LLM returned no valid JSON; keeping previous version")
-            return pdf_bytes, data, trim_metrics
-        data = shrunk
-        _clamp_best_title_in_data(data, full_name)
-        try:
-            pdf_bytes = tailored_json_to_pdf_bytes(data, profile_id, settings)
-        except Exception:
-            logger.exception("One-page enforcement: failed to rebuild PDF after trim")
-            return pdf_bytes, data, trim_metrics
+            return docx_bytes, llm_data, trim_metrics
+        llm_data = shrunk
+        _clamp_best_title_in_data(llm_data, full_name)
+        docx_bytes = _tailored_docx_bytes_from_template_path(docx_path, llm_data, full_name)
 
 
 def call_tailor_llm(
@@ -1587,6 +1952,8 @@ def call_tailor_llm(
     job_title: str,
     company: str,
     settings: dict[str, Any],
+    expected_projects: int,
+    bullets_per_slot: list[int],
 ) -> tuple[dict[str, Any] | None, list[dict[str, Any]], str]:
     """Call ollama with JSON output; retry with higher ``num_predict`` if parse/validation fails.
 
@@ -1600,6 +1967,7 @@ def call_tailor_llm(
     timeout = _tailor_client_timeout_seconds(settings, max(predict_attempts))
 
     tailor_temp = settings.get("ollama_tailor_temperature")
+    # Default ~0.28: steadier bullet length and phrasing than 0.65 (see prompts + settings.example).
     temperature = float(tailor_temp) if tailor_temp is not None else 0.28
     temperature = max(0.0, min(2.0, temperature))
 
@@ -1616,19 +1984,18 @@ def call_tailor_llm(
         except (TypeError, ValueError):
             pass
 
-    caps = ats_tailor_caps(settings)
-    system_prompt = _read_text(prompts_dir() / "resume_tailor.txt")
-    user_template = _read_text(prompts_dir() / "resume_tailor_user.txt")
-    project_catalog = format_dossier_project_catalog_for_prompt(
-        dossier_content, caps["max_projects"]
+    bullets_slot_str = _format_bullets_per_slot(bullets_per_slot)
+
+    system_prompt = _read_text(prompts_dir() / "resume_tailor.txt").replace(
+        "{{num_projects}}", str(expected_projects)
     )
+    user_template = _read_text(prompts_dir() / "resume_tailor_user.txt")
+    project_catalog = format_dossier_project_catalog_for_prompt(dossier_content, expected_projects)
     user_prompt = (
         user_template.replace("{{project_catalog}}", project_catalog)
         .replace("{{dossier}}", dossier_content)
-        .replace("{{max_experience}}", str(caps["max_experience"]))
-        .replace("{{max_projects}}", str(caps["max_projects"]))
-        .replace("{{max_bullets_experience}}", str(caps["max_bullets_experience"]))
-        .replace("{{max_bullets_project}}", str(caps["max_bullets_project"]))
+        .replace("{{num_projects}}", str(expected_projects))
+        .replace("{{bullets_per_slot}}", bullets_slot_str)
         .replace("{{title}}", job_title)
         .replace("{{company}}", company)
         .replace("{{description}}", job_description)
@@ -1684,7 +2051,7 @@ def call_tailor_llm(
         if raw is None:
             continue
         last_raw = raw
-        out, reason, _extra_think = _parse_ats_tailor_raw(raw, settings)
+        out, reason, _extra_think = _parse_tailor_raw(raw, expected_projects, bullets_per_slot)
         if out is not None:
             if attempt_i > 0:
                 logger.info(
@@ -1789,9 +2156,9 @@ _TAILOR_OLLAMA_MEMORY_HINT = (
 
 @dataclass
 class TailorPreviewResult:
-    """Result of tailoring for API + dashboard preview (ATS PDF)."""
+    """Result of tailoring for API + dashboard preview."""
 
-    pdf_bytes: bytes
+    docx_bytes: bytes
     filename: str
     original: dict[str, Any]
     tailored: dict[str, Any]
@@ -1800,6 +2167,7 @@ class TailorPreviewResult:
 
 
 def tailor_resume_bytes_with_preview(
+    docx_path: Path,
     job_description: str,
     job_title: str,
     company: str,
@@ -1807,49 +2175,78 @@ def tailor_resume_bytes_with_preview(
     profile_id: str,
     settings: dict[str, Any] | None = None,
 ) -> tuple[TailorPreviewResult | None, str]:
-    """Read dossier, call Ollama, build ATS PDF. Return ``(result, error)``."""
+    """Load docx skeleton, read dossier, call ollama, apply edits; return ``(result, error)``.
+
+    On success ``error`` is ``""``. On failure ``result`` is ``None`` and ``error`` explains why.
+    """
     settings = settings or load_settings()
     dossier_text = _read_dossier(profile_id, settings)
     if dossier_text is None:
         dp = dossier_path(profile_id, settings)
         return None, f"Could not read experience dossier at {dp} (missing file or unreadable)."
 
-    llm_data, tailor_runs, tailor_err = call_tailor_llm(
-        dossier_text,
-        job_description,
-        job_title,
-        company,
-        settings,
-    )
-    if llm_data is None:
-        return None, tailor_err
+    if not docx_path.is_file():
+        logger.error("Resume docx not found: %s", docx_path)
+        return None, f"Resume Word template not found at {docx_path}."
 
-    _clamp_best_title_in_data(llm_data, full_name)
-    original_preview = build_original_preview_ats(dossier_text)
-    try:
-        pdf_bytes = tailored_json_to_pdf_bytes(llm_data, profile_id, settings)
-    except Exception:
-        logger.exception("Failed to build tailored PDF")
-        return None, "Failed to build PDF (install Playwright: pip install playwright && playwright install chromium)"
+    with zipfile.ZipFile(docx_path, "r") as zin:
+        try:
+            doc_xml_bytes = zin.read("word/document.xml")
+        except KeyError:
+            logger.error("Missing word/document.xml in %s", docx_path)
+            return None, f"Resume template has no word/document.xml inside {docx_path}."
 
-    pdf_bytes, llm_data, trim_runs = _maybe_trim_ats_tailor_to_one_page(
-        llm_data,
-        profile_id,
-        full_name,
-        settings,
-        pdf_bytes,
-    )
-    _clamp_best_title_in_data(llm_data, full_name)
-    best_title = str(llm_data["best_title"]).strip()
-    fn = f"{_safe_filename_part(full_name)}_{_safe_filename_part(best_title)}.pdf"
+        root = ET.fromstring(doc_xml_bytes.decode("utf-8"))
+        ext = extract_resume_structure(root)
+        n_proj = len(ext.projects)
+        if n_proj == 0:
+            logger.error("No projects extracted from resume template")
+            return (
+                None,
+                f"No experience/project blocks found in template {docx_path} (template structure issue).",
+            )
 
-    all_runs = tailor_runs + trim_runs
-    ollama_metrics: dict[str, Any] = {
-        "runs": all_runs,
-        "summary": _summarize_tailor_ollama_runs(all_runs),
-        "memory_note": _TAILOR_OLLAMA_MEMORY_HINT,
-    }
-    log_tailor_session_ollama_summary(ollama_metrics["summary"])
+        bullets_per_slot = [len(pb.bullet_paras) for pb in ext.projects]
+
+        llm_data, tailor_runs, tailor_err = call_tailor_llm(
+            dossier_text,
+            job_description,
+            job_title,
+            company,
+            settings,
+            expected_projects=n_proj,
+            bullets_per_slot=bullets_per_slot,
+        )
+        if llm_data is None:
+            return None, tailor_err
+
+        _clamp_best_title_in_data(llm_data, full_name)
+        llm_data, polish_runs = _apply_rhythm_polish_if_enabled(
+            llm_data, bullets_per_slot, n_proj, settings
+        )
+        _clamp_best_title_in_data(llm_data, full_name)
+        original_preview = original_preview_from_tailor_slots(llm_data)
+        docx_bytes = _tailored_docx_bytes_from_template_path(docx_path, llm_data, full_name)
+        docx_bytes, llm_data, trim_runs = _maybe_trim_tailored_resume_to_one_page(
+            docx_path,
+            llm_data,
+            bullets_per_slot,
+            n_proj,
+            settings,
+            docx_bytes,
+            full_name,
+        )
+        _clamp_best_title_in_data(llm_data, full_name)
+        best_title = str(llm_data["best_title"]).strip()
+        fn = f"{_safe_filename_part(full_name)}_{_safe_filename_part(best_title)}.docx"
+
+        all_runs = tailor_runs + polish_runs + trim_runs
+        ollama_metrics: dict[str, Any] = {
+            "runs": all_runs,
+            "summary": _summarize_tailor_ollama_runs(all_runs),
+            "memory_note": _TAILOR_OLLAMA_MEMORY_HINT,
+        }
+        log_tailor_session_ollama_summary(ollama_metrics["summary"])
 
     tailored_preview = llm_json_to_tailored_preview(llm_data)
     explanation = {
@@ -1858,7 +2255,7 @@ def tailor_resume_bytes_with_preview(
     }
     return (
         TailorPreviewResult(
-            pdf_bytes=pdf_bytes,
+            docx_bytes=docx_bytes,
             filename=fn,
             original=original_preview,
             tailored=tailored_preview,
@@ -1869,47 +2266,74 @@ def tailor_resume_bytes_with_preview(
     )
 
 
-def rebuild_tailored_pdf_from_edits(
+def rebuild_docx_from_edits(
     edited_data: dict[str, Any],
     profile_id: str,
     full_name: str,
     settings: dict[str, Any] | None = None,
 ) -> tuple[bytes, str, dict[str, Any]]:
-    """Rebuild tailored PDF from user-edited full ATS JSON (no initial LLM).
+    """Rebuild tailored .docx from user-edited JSON (no initial LLM).
 
-    ``edited_data`` must include ``experience``, ``projects``, ``skills``, ``best_title``,
-    ``professional_summary``, ``core_competencies``, ``job_analysis``, ``change_summary``.
+    When ``tailor_enforce_one_page`` is enabled and LibreOffice is available, runs the same
+    PDF measurement + compress loop as the first tailor pass so **Save** cannot leave a
+    two-page PDF that the preview then shows.
+
+    ``edited_data`` matches the shape expected by ``apply_tailor_json_to_document``:
+    ``projects`` (title, date_range, technologies, bullets), ``skills``, ``best_title``.
+
+    Returns:
+        ``(docx_bytes, filename, meta)`` where ``meta`` has ``tailored`` and ``explanation``
+        (dashboard-shaped dicts) reflecting the final content, including any compress edits.
 
     Raises:
-        ValueError: Validation failed.
+        FileNotFoundError: Resume template missing.
+        ValueError: Template has no project slots or ``edited_data`` is invalid for apply.
     """
     settings = settings or load_settings()
-    _hydrate_rebuild_data_for_one_page_trim(edited_data)
-    normalize_ats_date_ranges(edited_data)
-    prepare_ats_tailor_lists(edited_data)
-    caps = ats_tailor_caps(settings)
-    ok, reason = validate_ats_tailor_response(edited_data, caps)
-    if not ok:
-        raise ValueError(reason)
-    _apply_ats_tailor_explanation_defaults(edited_data)
-    _clamp_best_title_in_data(edited_data, full_name)
-    try:
-        pdf_bytes = tailored_json_to_pdf_bytes(edited_data, profile_id, settings)
-    except Exception as e:
-        raise RuntimeError(
-            "Failed to build PDF. Install Playwright: pip install playwright && playwright install chromium"
-        ) from e
+    docx_path = resume_docx_path(profile_id, settings)
+    if not docx_path.is_file():
+        raise FileNotFoundError(str(docx_path))
 
-    pdf_bytes, final_llm, trim_runs = _maybe_trim_ats_tailor_to_one_page(
+    with zipfile.ZipFile(docx_path, "r") as zin:
+        try:
+            doc_xml_bytes = zin.read("word/document.xml")
+        except KeyError as e:
+            raise ValueError("Missing word/document.xml in resume template") from e
+        root = ET.fromstring(doc_xml_bytes.decode("utf-8"))
+        ext = extract_resume_structure(root)
+        n_proj = len(ext.projects)
+        if n_proj == 0:
+            raise ValueError("No projects extracted from resume template")
+        bullets_per_slot = [len(pb.bullet_paras) for pb in ext.projects]
+        _hydrate_rebuild_data_for_one_page_trim(edited_data)
+        _normalize_project_date_ranges_in_data(edited_data)
+        _prepare_tailor_llm_lists_for_resume(edited_data)
+        _clamp_best_title_in_data(edited_data, full_name)
+        apply_tailor_json_to_document(ext, edited_data, full_name)
+        new_doc_bytes = _serialize_document_xml(root)
+
+        out_buf = BytesIO()
+        with zipfile.ZipFile(out_buf, "w", compression=zipfile.ZIP_DEFLATED) as zout:
+            for info in zin.infolist():
+                payload = zin.read(info.filename)
+                if info.filename == "word/document.xml":
+                    payload = new_doc_bytes
+                zout.writestr(info, payload)
+
+    docx_bytes = out_buf.getvalue()
+    docx_bytes, final_llm, trim_runs = _maybe_trim_tailored_resume_to_one_page(
+        docx_path,
         edited_data,
-        profile_id,
-        full_name,
+        bullets_per_slot,
+        n_proj,
         settings,
-        pdf_bytes,
+        docx_bytes,
+        full_name,
     )
+    _apply_tailor_explanation_defaults(final_llm, n_proj)
     _clamp_best_title_in_data(final_llm, full_name)
     best_title = str(final_llm.get("best_title", "")).strip() or "resume"
-    fn = f"{_safe_filename_part(full_name)}_{_safe_filename_part(best_title)}.pdf"
+    fn = f"{_safe_filename_part(full_name)}_{_safe_filename_part(best_title)}.docx"
     om_summary = _summarize_tailor_ollama_runs(trim_runs)
     meta = {
         "tailored": llm_json_to_tailored_preview(final_llm),
@@ -1925,7 +2349,7 @@ def rebuild_tailored_pdf_from_edits(
     }
     if trim_runs:
         log_tailor_session_ollama_summary(om_summary)
-    return pdf_bytes, fn, meta
+    return docx_bytes, fn, meta
 
 
 def tailor_resume(
@@ -1936,9 +2360,11 @@ def tailor_resume(
     full_name: str,
     settings: dict[str, Any] | None = None,
 ) -> tuple[TailorPreviewResult | None, str]:
-    """Tailor résumé to ATS PDF; return ``(result, error)`` with empty ``error`` on success."""
+    """Tailor the profile's resume docx; return ``(result, error)`` with empty ``error`` on success."""
     settings = settings or load_settings()
+    path = resume_docx_path(profile_id, settings)
     return tailor_resume_bytes_with_preview(
+        path,
         job_description,
         job_title,
         company,
@@ -1964,7 +2390,7 @@ def tailor_result_to_api_dict(result: TailorPreviewResult) -> dict[str, Any]:
     """JSON-serializable payload for POST /tailor-resume."""
     return {
         "filename": result.filename,
-        "pdf_base64": base64.b64encode(result.pdf_bytes).decode("ascii"),
+        "docx_base64": base64.b64encode(result.docx_bytes).decode("ascii"),
         "original": result.original,
         "tailored": result.tailored,
         "explanation": result.explanation,

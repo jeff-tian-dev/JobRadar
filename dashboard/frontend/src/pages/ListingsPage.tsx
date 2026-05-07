@@ -7,21 +7,28 @@ import { TailorPreview } from '../components/listings/TailorPreview'
 import { Modal } from '../components/shared/Modal'
 import { ToastContainer } from '../components/shared/Toast'
 import { Spinner } from '../components/shared/Spinner'
-import type { Meta } from '../types'
+import { DEFAULT_TAILOR_UI_DEFAULTS, type Meta } from '../types'
 
 export function ListingsPage() {
-  const [tailorMeta, setTailorMeta] = useState<Pick<Meta, 'tailor_models' | 'default_tailor_model'> | null>(
-    null,
-  )
+  const [tailorMeta, setTailorMeta] = useState<
+    Pick<Meta, 'tailor_models' | 'default_tailor_model' | 'tailor_ui_defaults'> | null
+  >(null)
 
   useEffect(() => {
     void api
       .getMeta()
-      .then(m => setTailorMeta({ tailor_models: m.tailor_models, default_tailor_model: m.default_tailor_model }))
+      .then(m =>
+        setTailorMeta({
+          tailor_models: m.tailor_models,
+          default_tailor_model: m.default_tailor_model,
+          tailor_ui_defaults: m.tailor_ui_defaults ?? DEFAULT_TAILOR_UI_DEFAULTS,
+        }),
+      )
       .catch(() =>
         setTailorMeta({
           tailor_models: [{ id: 'qwen3:14b', label: 'qwen3:14b' }],
           default_tailor_model: 'qwen3:14b',
+          tailor_ui_defaults: DEFAULT_TAILOR_UI_DEFAULTS,
         }),
       )
   }, [])
@@ -125,6 +132,7 @@ export function ListingsPage() {
         onClose={closeTailorPreview}
         onNotify={addToast}
         onGenerate={generateTailor}
+        tailorUiDefaults={tailorMeta?.tailor_ui_defaults ?? null}
         availableModels={tailorMeta?.tailor_models ?? []}
         defaultModel={tailorMeta?.default_tailor_model ?? ''}
         generating={tailorGenerating}

@@ -1,6 +1,6 @@
 import type { TailorOllamaMetricsSummary, TailorOllamaRunMetrics } from './types'
 
-/** Match server ``_summarize_tailor_ollama_runs`` for merged runs after rebuild. */
+/** Match server ``_summarize_tailor_ollama_runs`` for client-side summaries. */
 export function summarizeOllamaRuns(runs: TailorOllamaRunMetrics[]): TailorOllamaMetricsSummary {
   let tp = 0
   let to = 0

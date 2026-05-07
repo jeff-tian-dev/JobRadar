@@ -1,0 +1,8 @@
+Produce the `edits` JSON described in the system prompt. Rewrite exactly the bullets listed under "Target indices" — these are the positions where the resume needs a short bullet to create long-short rhythm (bullet 0 is the headline and always stays long). Return only the `edits` object—do not echo the full JSON.
+
+Bullets per project (index order): **{{bullets_per_slot}}**
+Target indices to shorten: **{{target_indices}}**
+
+Current tailored content (the only fields that matter for this pass are each project's `bullets`; do not modify any other field):
+
+{{current_json}}

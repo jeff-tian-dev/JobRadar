@@ -47,68 +47,6 @@ def _minimal_docx_bytes() -> bytes:
     return buf.getvalue()
 
 
-def _minimal_ats_tailor_dict() -> dict:
-    """Valid ATS tailor JSON for tests (projects-only, empty experience)."""
-    return {
-        "best_title": "Backend Engineer",
-        "professional_summary": "Backend engineer focused on APIs and reliability.",
-        "core_competencies": ["API design", "Python", "Distributed systems", "PostgreSQL"],
-        "experience": [],
-        "projects": [
-            {
-                "dossier_source": "Test Project Section",
-                "title": "API Platform",
-                "date_range": "2024 - Present",
-                "technologies": "Python, FastAPI, Redis",
-                "bullets": [
-                    "Shipped **REST** services handling 1M req/day",
-                    "Cut **latency** by 40% via caching",
-                    "Owned **API** design reviews with product",
-                    "Automated **deploy** checks in CI",
-                ],
-            }
-        ],
-        "job_analysis": "They want APIs and reliability.",
-        "change_summary": ["Rewrote bullets for scale keywords."],
-        "skills": {
-            "Languages": "Python, Go, Java, TypeScript",
-            "Frameworks & Libraries": "FastAPI, gRPC, Flask, React, Pandas",
-            "Tools & Technologies": "Docker, Kubernetes, Git, PostgreSQL, Linux",
-        },
-    }
-
-
-def _rebuild_ats_body() -> dict:
-    """Payload for ``rebuild_tailored_pdf_from_edits`` (includes explanation round-trip)."""
-    return {
-        "best_title": "Senior Engineer",
-        "professional_summary": "Engineer with strong backend focus.",
-        "core_competencies": ["Rust", "APIs", "Distributed systems", "PostgreSQL"],
-        "experience": [],
-        "projects": [
-            {
-                "title": "Edited Project Title",
-                "dossier_source": "Edited Project Title",
-                "date_range": "Jan 2025 - Present",
-                "technologies": "Rust, Tokio",
-                "bullets": [
-                    "First **edited** bullet",
-                    "Second line",
-                    "Third line",
-                    "Fourth line",
-                ],
-            }
-        ],
-        "skills": {
-            "Languages": "Rust, Python, Go, SQL",
-            "Frameworks & Libraries": "Tokio, Axum, FastAPI, React, Pandas, NumPy",
-            "Tools & Technologies": "Docker, Git, Linux, PostgreSQL, Kubernetes",
-        },
-        "job_analysis": "They want reliable systems.",
-        "change_summary": ["Tightened project bullets for the role."],
-    }
-
-
 @pytest.fixture
 def minimal_docx_path(tmp_path: Path) -> Path:
     p = tmp_path / "resume.docx"
@@ -148,6 +86,69 @@ def test_extract_heading_includes_plain_subtitle_before_date(tmp_path: Path) -> 
     dr = ext.projects[0].date_run
     assert dr is not None
     assert "2024" in rt._run_text_content(dr)
+
+
+def test_rebuild_docx_clears_plain_subtitle_run_not_duplicate_heading(tmp_path: Path) -> None:
+    """Applying tailor JSON must not leave an old plain subtitle run next to the new bold full title."""
+    from xml.etree import ElementTree as ET
+
+    parts = dict(MINIMAL_PARTS)
+    parts["word/document.xml"] = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:body>
+<w:p><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t>JobRadar</w:t></w:r><w:r><w:t> - Old Subtitle</w:t></w:r><w:r><w:t>Jan 2024 - Present</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>First bullet line</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>Second bullet line</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>Third bullet line</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>Fourth bullet line</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Languages: </w:t></w:r><w:r><w:t>Python</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Frameworks &amp; Libraries: </w:t></w:r><w:r><w:t>Flask</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Tools &amp; Technologies: </w:t></w:r><w:r><w:t>Git</w:t></w:r></w:p>
+</w:body>
+</w:document>""".encode("utf-8")
+    p = tmp_path / "sub2.docx"
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as z:
+        for name, data in parts.items():
+            z.writestr(name, data)
+    p.write_bytes(buf.getvalue())
+    edited = {
+        "best_title": "Engineer",
+        "projects": [
+            {
+                "dossier_source": "JobRadar",
+                "name": "JobRadar",
+                "subtitle": "New Subtitle From LLM",
+                "date_range": "Jan 2024 - Present",
+                "technologies": "Python, SQLite",
+                "bullets": ["a", "b", "c", "d"],
+            }
+        ],
+        "skills": {
+            "Languages": "Rust, Python, Go, SQL",
+            "Frameworks & Libraries": "Tokio, Axum, FastAPI, React, Pandas, NumPy",
+            "Tools & Technologies": "Docker, Git, Linux, PostgreSQL, Kubernetes",
+        },
+    }
+    docx_bytes, _, _ = rt.rebuild_docx_from_edits(
+        edited,
+        "jeff",
+        "Someone Else",
+        settings={"resume_template_docx": str(p), "tailor_enforce_one_page": False},
+    )
+    with zipfile.ZipFile(io.BytesIO(docx_bytes), "r") as z:
+        root = ET.fromstring(z.read("word/document.xml").decode("utf-8"))
+    body = root.find("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}body")
+    assert body is not None
+    first_p = next(c for c in body if c.tag.endswith("}p"))
+    para_text = "".join(
+        (t.text or "")
+        for t in first_p.iter("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t")
+    )
+    assert "Old Subtitle" not in para_text
+    assert para_text.count("JobRadar") == 1
+    assert "New Subtitle From LLM" in para_text
+    assert "2024" in para_text
 
 
 def test_extract_and_preview_dict(minimal_docx_path: Path) -> None:
@@ -395,6 +396,38 @@ def test_prepare_tailor_llm_lists_clamps_skills_and_project_technologies() -> No
     assert rt._skill_line_item_count(data["skills"]["Frameworks & Libraries"]) == 7
 
 
+def test_strip_leading_coursework_label_variants() -> None:
+    assert rt._strip_leading_coursework_label("Relevant coursework: DSA, ML") == "DSA, ML"
+    assert rt._strip_leading_coursework_label("**Coursework:** Python") == "Python"
+    assert rt._strip_leading_coursework_label("COURSEWORK — Graph theory") == "Graph theory"
+    assert rt._strip_leading_coursework_label("Built a parser") == "Built a parser"
+
+
+def test_prepare_tailor_llm_lists_strips_coursework_prefix_from_bullets() -> None:
+    data: dict = {
+        "projects": [
+            {
+                "technologies": "Relevant coursework: Python, SQL",
+                "bullets": [
+                    "Relevant coursework: see algorithms class",
+                    "Shipped feature",
+                    "Third",
+                    "Fourth",
+                ],
+            }
+        ],
+        "skills": {
+            "Languages": "Coursework: A, B, C, D",
+            "Frameworks & Libraries": "f1, f2, f3, f4, f5",
+            "Tools & Technologies": "t1, t2, t3, t4, t5",
+        },
+    }
+    rt._prepare_tailor_llm_lists_for_resume(data)
+    assert "coursework" not in data["projects"][0]["technologies"].lower()
+    assert not data["projects"][0]["bullets"][0].lower().startswith("relevant")
+    assert data["skills"]["Languages"].startswith("A, B, C, D")
+
+
 def test_validate_tailor_response_rejects_eight_project_technologies() -> None:
     data = {
         "best_title": "Software Engineer",
@@ -482,9 +515,36 @@ def test_split_double_asterisk_segments() -> None:
     assert segs == [("a ", False), ("bold", True), (" c", False)]
 
 
-def test_tailor_resume_bytes_with_preview_mocked_llm(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_tailor_resume_bytes_with_preview_mocked_llm(monkeypatch: pytest.MonkeyPatch, minimal_docx_path: Path) -> None:
     def fake_llm(*_a: object, **_k: object) -> tuple[dict, list, str]:
-        return (_minimal_ats_tailor_dict(), [], "")
+        return (
+            {
+                "best_title": "Backend Engineer",
+                "job_analysis": "They want APIs and reliability.",
+                "change_summary": ["Rewrote bullets for scale keywords."],
+                "projects": [
+                    {
+                        "dossier_source": "Test Project Section",
+                        "title": "API Platform",
+                        "date_range": "2024 – Present",
+                        "technologies": "Python, FastAPI, Redis",
+                        "bullets": [
+                            "Shipped **REST** services handling 1M req/day",
+                            "Cut **latency** by 40% via caching",
+                            "Owned **API** design reviews with product",
+                            "Automated **deploy** checks in CI",
+                        ],
+                    }
+                ],
+                "skills": {
+                    "Languages": "Python, Go, Java, TypeScript",
+                    "Frameworks & Libraries": "FastAPI, gRPC, Flask, React, Pandas",
+                    "Tools & Technologies": "Docker, Kubernetes, Git, PostgreSQL, Linux",
+                },
+            },
+            [],
+            "",
+        )
 
     monkeypatch.setattr(rt, "call_tailor_llm", fake_llm)
     monkeypatch.setattr(
@@ -492,10 +552,9 @@ def test_tailor_resume_bytes_with_preview_mocked_llm(monkeypatch: pytest.MonkeyP
         "_read_dossier",
         lambda *_a, **_k: "## Test Project Section\n\nSome dossier body.",
     )
-    monkeypatch.setattr(rt, "tailored_json_to_pdf_bytes", lambda *_a, **_k: b"%PDF-1.4\nfake-tailor\n")
-    monkeypatch.setattr("pipeline.pdf_pages.count_pdf_pages", lambda _b: 1)
 
     result, err = rt.tailor_resume_bytes_with_preview(
+        minimal_docx_path,
         "Build APIs",
         "Backend Engineer",
         "Acme",
@@ -508,7 +567,7 @@ def test_tailor_resume_bytes_with_preview_mocked_llm(monkeypatch: pytest.MonkeyP
     )
     assert err == ""
     assert result is not None
-    assert result.filename.endswith(".pdf")
+    assert result.filename.endswith(".docx")
     assert "Jeff_Tian" in result.filename or "Jeff" in result.filename
     assert result.original["projects"][0]["title"] == "Test Project Section"
     assert result.original["projects"][0]["bullets"] == []
@@ -517,30 +576,72 @@ def test_tailor_resume_bytes_with_preview_mocked_llm(monkeypatch: pytest.MonkeyP
     assert result.tailored["projects"][0]["technologies"] == "Python, FastAPI, Redis"
     assert result.explanation["job_analysis"].startswith("They want")
     assert len(result.explanation["change_summary"]) == 1
-    assert len(result.pdf_bytes) > 10
+    assert len(result.docx_bytes) > 100
     api = rt.tailor_result_to_api_dict(result)
-    assert "pdf_base64" in api
+    assert "docx_base64" in api
     assert api["tailored"]["best_title"] == "Backend Engineer"
     assert "ollama_metrics" in api
     assert api["ollama_metrics"]["summary"]["llm_calls"] == 0
 
 
-def test_tailor_one_page_trim_invokes_compress_llm(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_tailor_one_page_trim_invokes_compress_llm(monkeypatch: pytest.MonkeyPatch, minimal_docx_path: Path) -> None:
     """When PDF reports >1 page, compress LLM runs and final tailored JSON is updated."""
-    monkeypatch.setattr(rt, "call_tailor_llm", lambda *_a, **_k: (_minimal_ats_tailor_dict(), [], ""))
-    monkeypatch.setattr(rt, "_read_dossier", lambda *_a, **_k: "## Test Project Section\n\nBody.")
-    monkeypatch.setattr(rt, "tailored_json_to_pdf_bytes", lambda *_a, **_k: b"%PDF-1.4\n")
+    from io import BytesIO
 
-    page_seq = iter([2, 1])
+    from pypdf import PdfWriter
 
-    def fake_count(_b: bytes) -> int:
-        return next(page_seq)
+    def fake_llm(*_a: object, **_k: object) -> tuple[dict, list, str]:
+        return (
+            {
+                "best_title": "Backend Engineer",
+                "job_analysis": "They want APIs.",
+                "change_summary": ["First pass."],
+                "projects": [
+                    {
+                        "dossier_source": "Test Project Section",
+                        "title": "API Platform",
+                        "date_range": "2024 – Present",
+                        "technologies": "Python, FastAPI, Redis",
+                        "bullets": [
+                            "Shipped **REST** services handling 1M req/day",
+                            "Cut **latency** by 40% via caching",
+                            "Owned **API** design reviews with product",
+                            "Automated **deploy** checks in CI",
+                        ],
+                    }
+                ],
+                "skills": {
+                    "Languages": "Python, Go, Java, TypeScript",
+                    "Frameworks & Libraries": "FastAPI, gRPC, Flask, React, Pandas",
+                    "Tools & Technologies": "Docker, Kubernetes, Git, PostgreSQL, Linux",
+                },
+            },
+            [],
+            "",
+        )
 
-    monkeypatch.setattr("pipeline.pdf_pages.count_pdf_pages", fake_count)
+    def _n_page_pdf(n: int) -> bytes:
+        buf = BytesIO()
+        w = PdfWriter()
+        for _ in range(n):
+            w.add_blank_page(width=72, height=72)
+        w.write(buf)
+        return buf.getvalue()
+
+    pdf_seq = iter([_n_page_pdf(2), _n_page_pdf(1)])
+
+    def fake_convert(_docx: bytes, **_kwargs: object) -> bytes:
+        return next(pdf_seq)
 
     compress_pages: list[int] = []
 
-    def fake_compress(current: dict, pdf_page_count: int, _settings: dict) -> tuple[dict, list]:
+    def fake_compress(
+        current: dict,
+        pdf_page_count: int,
+        _exp: int,
+        _slots: list[int],
+        _settings: dict,
+    ) -> tuple[dict, list]:
         compress_pages.append(pdf_page_count)
         out = copy.deepcopy(current)
         out["projects"][0]["bullets"] = [
@@ -551,9 +652,14 @@ def test_tailor_one_page_trim_invokes_compress_llm(monkeypatch: pytest.MonkeyPat
         ]
         return out, []
 
+    monkeypatch.setattr(rt, "call_tailor_llm", fake_llm)
+    monkeypatch.setattr(rt, "_read_dossier", lambda *_a, **_k: "## Test Project Section\n\nBody.")
     monkeypatch.setattr(rt, "call_tailor_fit_one_page_llm", fake_compress)
+    monkeypatch.setattr("pipeline.pdf_convert.find_soffice", lambda: "/fake/soffice")
+    monkeypatch.setattr("pipeline.pdf_convert.docx_bytes_to_pdf", fake_convert)
 
     result, err = rt.tailor_resume_bytes_with_preview(
+        minimal_docx_path,
         "Build APIs",
         "Backend Engineer",
         "Acme",
@@ -648,34 +754,58 @@ x
     assert "ReturnClip" in titles
 
 
-def test_rebuild_tailored_pdf_from_edits(monkeypatch: pytest.MonkeyPatch) -> None:
-    edited = _rebuild_ats_body()
-    fake_pdf = b"%PDF-1.4\nrebuild-test\n"
-    monkeypatch.setattr(rt, "tailored_json_to_pdf_bytes", lambda *_a, **_k: fake_pdf)
-    monkeypatch.setattr("pipeline.pdf_pages.count_pdf_pages", lambda _b: 1)
-
-    pdf_bytes, filename, meta = rt.rebuild_tailored_pdf_from_edits(
+def test_rebuild_docx_from_edits(minimal_docx_path: Path) -> None:
+    edited = {
+        "best_title": "Senior Engineer",
+        "projects": [
+            {
+                "title": "Edited Project Title",
+                "date_range": "Jan 2025 – Present",
+                "technologies": "Rust, Tokio",
+                "bullets": [
+                    "First **edited** bullet",
+                    "Second line",
+                    "Third line",
+                    "Fourth line",
+                ],
+            }
+        ],
+        "skills": {
+            "Languages": "Rust, Python, Go, SQL",
+            "Frameworks & Libraries": "Tokio, Axum, FastAPI, React, Pandas, NumPy",
+            "Tools & Technologies": "Docker, Git, Linux, PostgreSQL, Kubernetes",
+        },
+    }
+    docx_bytes, filename, meta = rt.rebuild_docx_from_edits(
         edited,
         "jeff",
         "Test User",
-        settings={"tailor_enforce_one_page": False},
+        settings={
+            "resume_template_docx": str(minimal_docx_path),
+            "tailor_enforce_one_page": False,
+        },
     )
-    assert pdf_bytes == fake_pdf
-    assert filename.endswith(".pdf")
+    assert filename.endswith(".docx")
     assert meta["tailored"]["best_title"] == "Senior Engineer"
-    assert meta["explanation"]["job_analysis"]
+    assert "job_analysis" in meta["explanation"]
     assert "Senior_Engineer" in filename or "Senior" in filename
+    with zipfile.ZipFile(io.BytesIO(docx_bytes), "r") as z:
+        xml = z.read("word/document.xml").decode("utf-8")
+    assert "Edited Project Title" in xml
+    assert "Jan 2025" in xml
+    # Minimal fixture has no dedicated tech run (title + date only); skills still apply.
+    assert "Tokio, Axum" in xml
+    assert "edited" in xml
+    assert "Rust, Python" in xml
 
 
 def test_hydrate_rebuild_data_for_one_page_trim_sets_dossier_source() -> None:
     data = {
-        "experience": [{"title": "My Role", "technologies": "A, B", "bullets": ["x"]}],
         "projects": [
             {"title": "My Project", "technologies": "A, B", "bullets": ["x"]},
-        ],
+        ]
     }
     rt._hydrate_rebuild_data_for_one_page_trim(data)
-    assert data["experience"][0]["dossier_source"] == "My Role"
     assert data["projects"][0]["dossier_source"] == "My Project"
     data2 = {
         "projects": [
@@ -686,21 +816,58 @@ def test_hydrate_rebuild_data_for_one_page_trim_sets_dossier_source() -> None:
     assert data2["projects"][0]["dossier_source"] == "Existing"
 
 
-def test_rebuild_tailored_pdf_from_edits_runs_one_page_compress(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_rebuild_docx_from_edits_runs_one_page_compress(
+    monkeypatch: pytest.MonkeyPatch, minimal_docx_path: Path
+) -> None:
     """Rebuild runs the same PDF + compress loop as initial tailor when PDF is multi-page."""
-    edited = _rebuild_ats_body()
+    from io import BytesIO
 
-    page_seq = iter([2, 1])
+    from pypdf import PdfWriter
 
-    def fake_count(_b: bytes) -> int:
-        return next(page_seq)
+    edited = {
+        "best_title": "Senior Engineer",
+        "projects": [
+            {
+                "title": "Edited Project Title",
+                "date_range": "Jan 2025 – Present",
+                "technologies": "Rust, Tokio",
+                "bullets": [
+                    "First **edited** bullet",
+                    "Second line",
+                    "Third line",
+                    "Fourth line",
+                ],
+            }
+        ],
+        "skills": {
+            "Languages": "Rust, Python, Go, SQL",
+            "Frameworks & Libraries": "Tokio, Axum, FastAPI, React, Pandas, NumPy",
+            "Tools & Technologies": "Docker, Git, Linux, PostgreSQL, Kubernetes",
+        },
+    }
 
-    monkeypatch.setattr("pipeline.pdf_pages.count_pdf_pages", fake_count)
-    monkeypatch.setattr(rt, "tailored_json_to_pdf_bytes", lambda *_a, **_k: b"%PDF-1.4\n")
+    def _n_page_pdf(n: int) -> bytes:
+        buf = BytesIO()
+        w = PdfWriter()
+        for _ in range(n):
+            w.add_blank_page(width=72, height=72)
+        w.write(buf)
+        return buf.getvalue()
+
+    pdf_seq = iter([_n_page_pdf(2), _n_page_pdf(1)])
+
+    def fake_convert(_docx: bytes, **_kwargs: object) -> bytes:
+        return next(pdf_seq)
 
     compress_pages: list[int] = []
 
-    def fake_compress(current: dict, pdf_page_count: int, _settings: dict) -> tuple[dict, list]:
+    def fake_compress(
+        current: dict,
+        pdf_page_count: int,
+        _exp: int,
+        _slots: list[int],
+        _settings: dict,
+    ) -> tuple[dict, list]:
         compress_pages.append(pdf_page_count)
         out = copy.deepcopy(current)
         out["projects"][0]["bullets"] = [
@@ -712,19 +879,22 @@ def test_rebuild_tailored_pdf_from_edits_runs_one_page_compress(monkeypatch: pyt
         return out, []
 
     monkeypatch.setattr(rt, "call_tailor_fit_one_page_llm", fake_compress)
+    monkeypatch.setattr("pipeline.pdf_convert.find_soffice", lambda: "/fake/soffice")
+    monkeypatch.setattr("pipeline.pdf_convert.docx_bytes_to_pdf", fake_convert)
 
-    pdf_bytes, _fn, meta = rt.rebuild_tailored_pdf_from_edits(
+    docx_bytes, _fn, meta = rt.rebuild_docx_from_edits(
         edited,
         "jeff",
         "Test User",
         settings={
+            "resume_template_docx": str(minimal_docx_path),
             "tailor_enforce_one_page": True,
             "tailor_one_page_max_trim_attempts": 3,
         },
     )
     assert compress_pages == [2]
     assert meta["tailored"]["projects"][0]["bullets"][0].startswith("Compressed **one**")
-    assert len(pdf_bytes) > 4
+    assert len(docx_bytes) > 100
 
 
 def test_original_preview_from_tailor_slots() -> None:
@@ -757,9 +927,6 @@ def test_call_tailor_llm_substitutes_dossier_and_counts(monkeypatch: pytest.Monk
             captured["user"] = (messages or [{}, {}])[1]["content"]
             payload = {
                 "best_title": "Eng",
-                "professional_summary": "Short summary grounded in dossier facts only.",
-                "core_competencies": ["APIs", "Python", "SQL", "Cloud"],
-                "experience": [],
                 "job_analysis": "Analysis.",
                 "change_summary": ["c1", "c2"],
                 "projects": [
@@ -798,38 +965,17 @@ Apple details
         "Title",
         "Co",
         {"ollama_host": "http://127.0.0.1:11434"},
+        expected_projects=2,
+        bullets_per_slot=[4, 4],
     )
     assert err == ""
     assert out is not None
     assert len(runs) == 1
     assert runs[0]["phase"] == "tailor"
     assert "Zebra details" in captured["user"]
-    assert "Max **projects** entries:" in captured["user"]
-    assert "Max bullets per **project** block:" in captured["user"]
+    assert "4 bullets per slot" in captured["user"]
     assert "reverse-alphabetical" in captured["user"].casefold()
     assert "- ZebraProj" in captured["user"]
     assert "- AppleProj" in captured["user"]
     assert captured["user"].index("- ZebraProj") < captured["user"].index("- AppleProj")
     assert out["projects"][0]["dossier_source"] == "P1"
-
-
-def test_validate_ats_tailor_allows_empty_experience_with_projects() -> None:
-    from pipeline.ats_tailor_caps import ats_tailor_caps
-    from pipeline.ats_tailor_validate import validate_ats_tailor_response
-
-    data = _minimal_ats_tailor_dict()
-    caps = ats_tailor_caps({})
-    ok, reason = validate_ats_tailor_response(data, caps)
-    assert ok, reason
-    assert data["experience"] == []
-
-
-def test_build_ats_resume_body_omits_work_experience_when_empty() -> None:
-    from pipeline.ats_resume_html import build_ats_resume_body_html
-
-    llm = _minimal_ats_tailor_dict()
-    profile = {"name": "Test User"}
-    html_out = build_ats_resume_body_html(llm, profile)
-    assert "Work Experience" not in html_out
-    assert "Projects" in html_out
-    assert "Professional Summary" in html_out

@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { api } from '../api'
-import type { ListingDetail, ListingSummary, ScoreResult, TailorResult } from '../types'
+import type { ListingDetail, ListingSummary, ScoreResult, TailorGenerateOptions, TailorResult } from '../types'
 import type { ToastMessage } from '../components/shared/Toast'
 import type { ToastType } from '../components/shared/Toast'
 
@@ -138,12 +138,13 @@ export function useListings() {
   }, [])
 
   const generateTailor = useCallback(
-    async (model: string) => {
+    async (opts: TailorGenerateOptions) => {
       if (tailorListingId == null) return
-      setTailorGenerating(true)
+      const { model, ...llm } = opts
       setTailorError(null)
+      setTailorGenerating(true)
       try {
-        const result = await api.tailorResume(tailorListingId, model)
+        const result = await api.tailorResume(tailorListingId, model, llm)
         setTailorResult(result)
         addToast('Resume tailored — review changes below')
       } catch (e) {

@@ -10,8 +10,8 @@
 active_profile: jeff
 profiles_dir: config/profiles
 db_path: db/jobs.db
-# Optional: Word résumé template (legacy tooling / structure extraction only). Tailoring builds an ATS PDF
-# from experience-dossier.md + profile.yaml via HTML → Playwright; it does not patch this .docx.
+# Word résumé template: project blocks, bullets, and skills lines define what the tailor LLM fills.
+# Ollama JSON is applied to word/document.xml inside this file; output is a tailored .docx.
 # resume_template_docx: config/profiles/jeff/jeff resume template.docx
 # Legacy alias: resume_docx (same resolution order: resume_template_docx first, then resume_docx).
 # If both unset: tries profiles/<active_profile>/jeff resume template.docx, then Jeff Tian Resume.docx.
@@ -22,7 +22,12 @@ db_path: db/jobs.db
 
 ollama_model: qwen3:14b
 # Optional: use a different model only for resume tailoring + one-page compress (defaults to ollama_model).
-# ollama_tailor_model: qwen3:32b
+# ollama_tailor_model: qwen3.5:35b
+# Optional: extra Ollama tags shown in the tailor dropdown (order preserved). Scoring model is appended if missing.
+# ollama_tailor_models:
+#   - qwen3.5:35b
+#   - qwen3.5:9b
+#   - qwen3:32b
 ollama_timeout_seconds: 30
 # Repeat penalty for all Ollama chat calls (scoring, discovery, tailoring). Omit for default 1.1.
 ollama_repeat_penalty: 1.1
@@ -41,30 +46,21 @@ ollama_tailor_num_predict: 24576
 # (model reasons through project scoring before emitting JSON; thinking logged to pipeline.log).
 # Other models default to false. Override to force either behavior.
 # ollama_tailor_think: true
+# Rhythm polish: after the initial tailor JSON, a second LLM pass rewrites 2 bullets per project
+# as short punchy one-liners (~10-14 words) so the resume alternates long/short visually. Set false
+# to skip and keep the initial tailor output as-is.
+# ollama_tailor_rhythm_polish_enabled: true
+# Optional overrides for the polish pass (defaults derive from the main tailor settings):
+# ollama_tailor_rhythm_temperature: 0.2
+# ollama_tailor_rhythm_num_predict: 12288
 ollama_host: http://127.0.0.1:11434
 #
-# Tailor PDF: Playwright Chromium renders ATS HTML. After `pip install -e .`, run:
-#   playwright install chromium
+# PDF preview in the dashboard uses LibreOffice (`soffice --headless`). Install LibreOffice if you want
+# in-browser PDF preview or "Download PDF" from a tailored docx.
 #
-# Optional soft caps (defaults in code): max list lengths and bullets per experience/project block.
-# tailor_max_experience_entries: 5
-# tailor_max_project_entries: 6
-# tailor_max_bullets_per_experience: 6
-# tailor_max_bullets_per_project: 6
-#
-# PDF page size for ATS output: letter or a4 (also inferred from profile location/country when unset).
-# ats_pdf_format: letter
-#
-# One-page resume: measure pages on the Playwright PDF with pypdf; if >1, run compress LLM until one page or max attempts.
-tailor_enforce_one_page: true
-tailor_one_page_max_trim_attempts: 5
-# Optional: token budget for the compress pass (omit to derive from ollama_tailor_num_predict).
-# ollama_tailor_fit_one_page_num_predict: 12288
-# Optional: sampling temperature for compress pass (omit = min(0.25, ollama_tailor_temperature)).
-# ollama_tailor_fit_one_page_temperature: 0.2
-#
-# Tailor API responses include ollama_metrics (runs + summary: tokens, wall seconds, tok/s). Same for
-# POST /api/tailor/rebuild when one-page trim runs. Persisted logs: ~/Library/Logs/job-search-agent/ollama_metrics.log
+# Tailor API responses include ollama_metrics (runs + summary: tokens, wall seconds, tok/s).
+# POST /api/tailor/rebuild returns empty runs (no LLM). Persisted logs:
+# ~/Library/Logs/job-search-agent/ollama_metrics.log
 # (per-call "Ollama metrics: ..." lines + JSON "Tailor session ollama summary: {...}" after each tailor).
 
 # Skip feed listings when posted date parses and is strictly older than this many days.

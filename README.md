@@ -2,7 +2,7 @@
 
 > **Automated job-search pipeline that runs 24/7 on your Mac — zero API costs, everything local.**
 
-JobRadar monitors RSS/Atom feeds from Greenhouse, Lever, Ashby, and Workable, discovers new companies automatically via YC, Hacker News hiring threads, and GitHub Trending (each source toggled in `config/settings.yaml`), scores each listing against your personal profile using a **local LLM (qwen3:14b via Ollama)**, stores ranked results in SQLite, and surfaces them through a **React + FastAPI dashboard**. High-scoring matches trigger push alerts (ntfy.sh, Slack, or email). The dashboard can **tailor a résumé** to a job description from `experience-dossier.md` and `profile.yaml`, emitting an **ATS-style PDF** via HTML and **Playwright** (with optional one-page enforcement). A Word template is optional legacy tooling only—see `config/settings.example.yaml`.
+JobRadar monitors RSS/Atom feeds from Greenhouse, Lever, Ashby, and Workable, discovers new companies automatically via YC, Hacker News hiring threads, and GitHub Trending (each source toggled in `config/settings.yaml`), scores each listing against your personal profile using a **local LLM (qwen3:14b via Ollama)**, stores ranked results in SQLite, and surfaces them through a **React + FastAPI dashboard**. High-scoring matches trigger push alerts (ntfy.sh, Slack, or email). The dashboard can **tailor a résumé** to a job description using your **Word template** (`resume_template_docx` / `resume_docx`): Ollama returns JSON that **replaces text in `word/document.xml`** (project titles, bullets, skills), then you get a **.docx** download; the UI can **preview PDF via LibreOffice** (`POST /api/tailor/convert-pdf`). See `config/settings.example.yaml`.
 
 ---
 
@@ -52,7 +52,7 @@ Dashboard  (dev: Vite :5173 + API :8000; prod: uvicorn serves built SPA on :8000
 - **Database**: SQLite (`db/jobs.db`)
 - **Dashboard API**: FastAPI + Uvicorn
 - **Dashboard UI**: React 18, TypeScript, Tailwind CSS, Vite (**Node.js** required for `npm` / `dev.sh`)
-- **Résumé / PDF**: Playwright Chromium for tailor PDF export; `pypdf` to count pages for one-page enforcement (see `config/settings.example.yaml`)
+- **Résumé**: Word `.docx` tailoring (XML patch) + optional PDF preview/export via LibreOffice headless
 - **Alerting**: ntfy.sh, Slack incoming webhooks, `smtplib`
 - **Testing**: pytest + pytest-asyncio (118 tests, all passing)
 

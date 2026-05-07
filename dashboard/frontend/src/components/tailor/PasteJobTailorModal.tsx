@@ -62,7 +62,7 @@ export function PasteJobTailorModal({ open, onClose, onContinue }: Props) {
     <Modal open={open} onClose={() => !submitting && resetAndClose()}>
       <h2 className="text-lg font-bold text-gray-900 pr-8">Tailor resume from job text</h2>
       <p className="text-sm text-gray-500 mt-1 mb-4">
-        Enter the posting, then choose a model and click Generate in the editor. No saved job required.
+        Paste the posting, then generate a tailored résumé in the editor from your dossier. No saved job required.
       </p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

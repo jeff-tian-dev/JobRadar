@@ -1,6 +1,8 @@
-The tailored résumé PDF currently has **{{pdf_page_count}}** pages. The target is **1 page** (same ATS HTML layout).
+The tailored resume exported to PDF currently has **{{pdf_page_count}}** pages. The target is **1 page** with the same Word template.
 
-Revise the JSON below so the layout fits one page. Preserve all structural rules from the system message.
+Bullet counts per project (must match exactly after your edit): **{{bullets_per_slot}}**
+
+Revise the JSON below so the layout fits one page. Preserve all structural constraints from the system message.
 
 ## CURRENT TAILOR JSON (edit and return a full replacement)
 

@@ -1,7 +1,6 @@
 /**
  * HTTP timeouts for long-running API calls.
- * Tailor can exceed several minutes per Ollama generation; keep in sync with
- * ``pipeline.resume_tailor._tailor_client_timeout_seconds`` (capped at 900s per call)
- * and Vite ``server.proxy['/api'].timeout``.
+ * Tailor can exceed ~15 minutes on slow local models; keep in sync with
+ * ``pipeline.resume_tailor._tailor_client_timeout_seconds`` and Vite proxy.
  */
-export const TAILOR_REQUEST_TIMEOUT_MS = 900_000
+export const TAILOR_REQUEST_TIMEOUT_MS = 2_400_000

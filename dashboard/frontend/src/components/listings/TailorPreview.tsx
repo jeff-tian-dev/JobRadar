@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { api } from '../../api'
 import { SKILL_LINE_KEYS, useTailorEditor } from '../../hooks/useTailorEditor'
-import type { TailorModelOption, TailorResult } from '../../types'
+import {
+  DEFAULT_TAILOR_UI_DEFAULTS,
+  type TailorGenerateOptions,
+  type TailorModelOption,
+  type TailorResult,
+  type TailorUiDefaults,
+} from '../../types'
 import type { ToastType } from '../shared/Toast'
 import { Spinner } from '../shared/Spinner'
 import { OllamaLoadPanel } from '../tailor/OllamaLoadPanel'
@@ -30,7 +37,9 @@ interface Props {
   result: TailorResult | null
   onClose: () => void
   onNotify?: (message: string, type?: ToastType) => void
-  onGenerate?: (model: string) => Promise<void>
+  onGenerate?: (opts: TailorGenerateOptions) => Promise<void>
+  /** Server defaults for thinking toggle (optional). */
+  tailorUiDefaults?: TailorUiDefaults | null
   availableModels?: TailorModelOption[]
   defaultModel?: string
   generating?: boolean
@@ -45,6 +54,7 @@ export function TailorPreview({
   onClose,
   onNotify,
   onGenerate,
+  tailorUiDefaults = null,
   availableModels = [],
   defaultModel = '',
   generating = false,
@@ -55,6 +65,7 @@ export function TailorPreview({
   const [pdfDownloadBusy, setPdfDownloadBusy] = useState(false)
   const [analysisOpen, setAnalysisOpen] = useState(true)
   const [selectedModel, setSelectedModel] = useState('')
+  const [tailorThink, setTailorThink] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -64,7 +75,9 @@ export function TailorPreview({
       if (prev && models.some(m => m.id === prev)) return prev
       return fallback
     })
-  }, [open, defaultModel, availableModels])
+    const defs = tailorUiDefaults ?? DEFAULT_TAILOR_UI_DEFAULTS
+    setTailorThink(!!defs.tailor_think)
+  }, [open, defaultModel, availableModels, tailorUiDefaults])
 
   useEffect(() => {
     if (open) setAnalysisOpen(true)
@@ -85,20 +98,27 @@ export function TailorPreview({
 
   if (!open) return null
 
-  const hasPdf = Boolean(editor.pdfBase64?.trim())
+  const hasDocx = Boolean(editor.docxBase64?.trim())
   const explanation = editor.explanation
 
-  const handleDownloadPdf = () => {
+  const handleDownloadDocx = () => {
+    const blob = base64ToBlob(
+      editor.docxBase64,
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    )
+    downloadBlob(blob, editor.filename)
+    onNotify?.(`Downloaded ${editor.filename}`, 'success')
+  }
+
+  const handleDownloadPdf = async () => {
     setPdfDownloadBusy(true)
     try {
-      const blob = base64ToBlob(editor.pdfBase64, 'application/pdf')
-      const name = editor.filename.toLowerCase().endsWith('.pdf')
-        ? editor.filename
-        : `${editor.filename.replace(/\.(docx|pdf)$/i, '')}.pdf`
-      downloadBlob(blob, name)
-      onNotify?.(`Downloaded ${name}`, 'success')
+      const blob = await api.convertTailorPdf(editor.docxBase64)
+      const pdfName = editor.filename.replace(/\.docx$/i, '.pdf')
+      downloadBlob(blob, pdfName)
+      onNotify?.(`Downloaded ${pdfName}`, 'success')
     } catch (e) {
-      onNotify?.(`PDF download failed: ${e}`, 'error')
+      onNotify?.(`PDF export failed: ${e}`, 'error')
     } finally {
       setPdfDownloadBusy(false)
     }
@@ -106,7 +126,11 @@ export function TailorPreview({
 
   const handleGenerateClick = () => {
     if (!onGenerate || !selectedModel.trim() || generating) return
-    void onGenerate(selectedModel.trim()).catch(() => {
+    const opts: TailorGenerateOptions = {
+      model: selectedModel.trim(),
+      tailor_think: tailorThink,
+    }
+    void onGenerate(opts).catch(() => {
       /* parent shows toast / error */
     })
   }
@@ -149,7 +173,7 @@ export function TailorPreview({
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Tailored resume</h2>
             <p className="text-sm text-gray-500">
-              {hasPdf
+              {hasDocx
                 ? 'Edit text, save to refresh the PDF preview, then download.'
                 : 'Choose an Ollama model and click Generate to tailor your resume from the job.'}
             </p>
@@ -180,214 +204,45 @@ export function TailorPreview({
                 />
               </div>
 
-              <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Professional summary
-                </label>
-                <textarea
-                  value={editor.form.professional_summary}
-                  onChange={e => editor.setProfessionalSummary(e.target.value)}
-                  rows={4}
-                  className="w-full resize-y rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div className="rounded-lg border border-gray-200 bg-gray-50/80 p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-semibold uppercase text-gray-500">Core competencies</p>
-                  <button
-                    type="button"
-                    onClick={() => editor.addCoreCompetency()}
-                    className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
-                  >
-                    Add
-                  </button>
-                </div>
-                {editor.form.core_competencies.map((c, ci) => (
-                  <div key={ci} className="flex gap-2">
-                    <input
-                      type="text"
-                      value={c}
-                      onChange={e => editor.setCoreCompetency(ci, e.target.value)}
-                      className="min-w-0 flex-1 rounded border border-gray-300 px-2 py-1.5 text-sm text-gray-800"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => editor.removeCoreCompetency(ci)}
-                      className="shrink-0 rounded border border-gray-200 px-2 text-xs text-gray-500 hover:bg-gray-100"
-                      aria-label="Remove competency"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold uppercase text-gray-500">Work experience</p>
-                <button
-                  type="button"
-                  onClick={() => editor.addBlock('experience')}
-                  className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
-                >
-                  Add role
-                </button>
-              </div>
-              {editor.form.experience.map((proj, pi) => (
-                <div key={`exp-${pi}`} className="rounded-lg border border-gray-200 bg-gray-50/80 p-3 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-semibold uppercase text-gray-500">Experience {pi + 1}</p>
-                    <button
-                      type="button"
-                      onClick={() => editor.removeBlock('experience', pi)}
-                      className="text-xs text-red-600 hover:text-red-800"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Dossier source (## heading)"
-                    value={proj.dossier_source ?? ''}
-                    onChange={e => editor.setBlockDossierSource('experience', pi, e.target.value)}
-                    className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs text-gray-700"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Title"
-                    value={proj.title}
-                    onChange={e => editor.setBlockTitle('experience', pi, e.target.value)}
-                    className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm font-medium text-gray-900"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Date range"
-                    value={proj.date_range ?? ''}
-                    onChange={e => editor.setBlockDateRange('experience', pi, e.target.value)}
-                    className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm text-gray-800"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Technologies (comma-separated)"
-                    value={proj.technologies ?? ''}
-                    onChange={e => editor.setBlockTechnologies('experience', pi, e.target.value)}
-                    className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm text-gray-800"
-                  />
-                  <div className="space-y-2">
-                    {proj.bullets.map((b, bi) => (
-                      <div key={bi} className="flex gap-2">
-                        <div className="min-w-0 flex-1">
-                          <label className="mb-0.5 block text-[10px] font-medium uppercase text-gray-400">
-                            Bullet {bi + 1}
-                          </label>
-                          <textarea
-                            value={b}
-                            onChange={e => editor.setBullet('experience', pi, bi, e.target.value)}
-                            rows={3}
-                            className="w-full resize-y rounded border border-gray-300 px-2 py-1.5 text-sm text-gray-800"
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => editor.removeBullet('experience', pi, bi)}
-                          className="mt-5 shrink-0 self-start rounded border border-gray-200 px-2 text-xs text-gray-500 hover:bg-gray-100"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => editor.addBullet('experience', pi)}
-                    className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
-                  >
-                    + Bullet
-                  </button>
-                </div>
-              ))}
-
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold uppercase text-gray-500">Projects</p>
-                <button
-                  type="button"
-                  onClick={() => editor.addBlock('projects')}
-                  className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
-                >
-                  Add project
-                </button>
-              </div>
               {editor.form.projects.map((proj, pi) => (
-                <div key={`proj-${pi}`} className="rounded-lg border border-gray-200 bg-gray-50/80 p-3 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-semibold uppercase text-gray-500">Project {pi + 1}</p>
-                    <button
-                      type="button"
-                      onClick={() => editor.removeBlock('projects', pi)}
-                      className="text-xs text-red-600 hover:text-red-800"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Dossier source (## heading)"
-                    value={proj.dossier_source ?? ''}
-                    onChange={e => editor.setBlockDossierSource('projects', pi, e.target.value)}
-                    className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs text-gray-700"
-                  />
+                <div key={pi} className="rounded-lg border border-gray-200 bg-gray-50/80 p-3 space-y-2">
+                  <p className="text-xs font-semibold uppercase text-gray-500">Project {pi + 1}</p>
                   <input
                     type="text"
                     placeholder="Project title"
                     value={proj.title}
-                    onChange={e => editor.setBlockTitle('projects', pi, e.target.value)}
+                    onChange={e => editor.setProjectTitle(pi, e.target.value)}
                     className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm font-medium text-gray-900"
                   />
                   <input
                     type="text"
                     placeholder="Date range"
                     value={proj.date_range ?? ''}
-                    onChange={e => editor.setBlockDateRange('projects', pi, e.target.value)}
+                    onChange={e => editor.setProjectDateRange(pi, e.target.value)}
                     className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm text-gray-800"
                   />
                   <input
                     type="text"
                     placeholder="Technologies (comma-separated)"
                     value={proj.technologies ?? ''}
-                    onChange={e => editor.setBlockTechnologies('projects', pi, e.target.value)}
+                    onChange={e => editor.setProjectTechnologies(pi, e.target.value)}
                     className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm text-gray-800"
                   />
                   <div className="space-y-2">
                     {proj.bullets.map((b, bi) => (
-                      <div key={bi} className="flex gap-2">
-                        <div className="min-w-0 flex-1">
-                          <label className="mb-0.5 block text-[10px] font-medium uppercase text-gray-400">
-                            Bullet {bi + 1}
-                          </label>
-                          <textarea
-                            value={b}
-                            onChange={e => editor.setBullet('projects', pi, bi, e.target.value)}
-                            rows={3}
-                            className="w-full resize-y rounded border border-gray-300 px-2 py-1.5 text-sm text-gray-800"
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => editor.removeBullet('projects', pi, bi)}
-                          className="mt-5 shrink-0 self-start rounded border border-gray-200 px-2 text-xs text-gray-500 hover:bg-gray-100"
-                        >
-                          ×
-                        </button>
+                      <div key={bi}>
+                        <label className="mb-0.5 block text-[10px] font-medium uppercase text-gray-400">
+                          Bullet {bi + 1}
+                        </label>
+                        <textarea
+                          value={b}
+                          onChange={e => editor.setBullet(pi, bi, e.target.value)}
+                          rows={3}
+                          className="w-full resize-y rounded border border-gray-300 px-2 py-1.5 text-sm text-gray-800"
+                        />
                       </div>
                     ))}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => editor.addBullet('projects', pi)}
-                    className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
-                  >
-                    + Bullet
-                  </button>
                 </div>
               ))}
 
@@ -428,18 +283,18 @@ export function TailorPreview({
                     <div>
                       <h4 className="mb-1 text-xs font-semibold uppercase text-gray-500">What they really want</h4>
                       <p className="whitespace-pre-wrap leading-relaxed text-gray-800">
-                        {explanation.job_analysis || (hasPdf ? '' : '—')}
+                        {explanation.job_analysis || (hasDocx ? '' : '—')}
                       </p>
                     </div>
                     <div>
                       <h4 className="mb-1 text-xs font-semibold uppercase text-gray-500">What I did</h4>
                       <p className="mb-2 text-xs text-gray-500">
-                        How the resume was shaped—experience and project entries as adjusted for the role.
+                        How the resume was shaped—one entry per project slot.
                       </p>
                       <ol className="list-decimal space-y-2 pl-5 text-gray-800">
                         {(explanation.change_summary.length
                           ? explanation.change_summary
-                          : hasPdf
+                          : hasDocx
                             ? []
                             : ['—']
                         ).map((line, i) => (
@@ -460,7 +315,7 @@ export function TailorPreview({
               Print preview (PDF)
             </h3>
             <div className="relative min-h-0 flex-1">
-              {!hasPdf && !editor.pdfLoading && !generating && (
+              {!hasDocx && !editor.pdfLoading && !generating && (
                 <div className="absolute inset-0 z-[5] flex items-center justify-center p-6 text-center text-sm text-gray-500">
                   PDF preview appears here after you generate a tailored resume.
                 </div>
@@ -473,7 +328,7 @@ export function TailorPreview({
                   </div>
                 </div>
               )}
-              {(editor.pdfLoading || editor.saving) && hasPdf && (
+              {(editor.pdfLoading || editor.saving) && hasDocx && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70">
                   <div className="flex items-center gap-2 text-gray-600">
                     <Spinner size="md" />
@@ -481,13 +336,13 @@ export function TailorPreview({
                   </div>
                 </div>
               )}
-              {editor.pdfError && !editor.pdfLoading && hasPdf && (
+              {editor.pdfError && !editor.pdfLoading && hasDocx && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center p-4 text-center text-sm text-red-700">
                   <div>
                     <p className="font-medium">Could not build PDF preview</p>
                     <p className="mt-1 text-red-600/90">{editor.pdfError}</p>
                     <p className="mt-2 text-xs text-gray-600">
-                      Ensure Playwright Chromium is installed (<code className="rounded bg-gray-100 px-1">playwright install chromium</code>).
+                      Install LibreOffice for preview, or use Download DOCX.
                     </p>
                   </div>
                 </div>
@@ -533,6 +388,16 @@ export function TailorPreview({
                     ))}
                   </select>
                 </label>
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-600">
+                  <input
+                    type="checkbox"
+                    checked={tailorThink}
+                    onChange={e => setTailorThink(e.target.checked)}
+                    disabled={generating}
+                    className="rounded border-gray-300"
+                  />
+                  Extended thinking
+                </label>
               </>
             )}
           </div>
@@ -544,7 +409,7 @@ export function TailorPreview({
             >
               Close
             </button>
-            {hasPdf && (
+            {hasDocx && (
               <>
                 <button
                   type="button"
@@ -568,12 +433,19 @@ export function TailorPreview({
                 </button>
                 <button
                   type="button"
-                  onClick={handleDownloadPdf}
+                  onClick={() => void handleDownloadPdf()}
                   disabled={pdfDownloadBusy}
                   className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
                 >
                   {pdfDownloadBusy && <Spinner size="sm" />}
-                  {pdfDownloadBusy ? 'Downloading…' : 'Download PDF'}
+                  {pdfDownloadBusy ? 'Building PDF…' : 'Download PDF'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadDocx}
+                  className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                >
+                  Download DOCX
                 </button>
               </>
             )}

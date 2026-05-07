@@ -1,11 +1,6 @@
 import { useState } from 'react'
 import type { TailorOllamaMetricsSummary, TailorOllamaRunMetrics } from '../../types'
 
-function phaseLabel(p: TailorOllamaRunMetrics['phase']): string {
-  if (p === 'one_page_trim') return 'One-page trim'
-  return 'Tailor'
-}
-
 interface Props {
   runs: TailorOllamaRunMetrics[]
   summary: TailorOllamaMetricsSummary
@@ -92,10 +87,7 @@ export function OllamaLoadPanel({ runs, summary, memoryNote }: Props) {
                   {runs.map((r, i) => (
                     <tr key={i} className="border-b border-gray-100 last:border-0">
                       <td className="px-2 py-1.5 font-mono text-gray-500">{i + 1}</td>
-                      <td className="px-2 py-1.5 text-gray-800">
-                        {phaseLabel(r.phase)}
-                        {r.trim_round != null ? ` (round ${r.trim_round})` : ''}
-                      </td>
+                      <td className="px-2 py-1.5 text-gray-800">Tailor</td>
                       <td className="px-2 py-1.5 font-mono tabular-nums">
                         {r.output_tokens?.toLocaleString() ?? '—'}
                       </td>

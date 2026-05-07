@@ -174,7 +174,7 @@ export function ListingDetail({
           </button>
           <p className="text-xs text-gray-400 mt-1 max-w-md">
             {detail.description?.trim()
-              ? 'Opens the tailor editor: choose an Ollama model, click Generate, then review and download. Large models (e.g. 32B) can take many minutes. You can also use the header “Tailor resume” button to paste a job without a saved listing.'
+              ? 'Opens the tailor editor: pick a model and generate a résumé from your dossier and this listing (the dossier file on disk is not changed). Large models can take many minutes. You can also use the header “Tailor resume” button to paste a job without a saved listing.'
               : 'Tailor is disabled until a job description exists in the database — or use the header “Tailor resume” button to paste a posting.'}
           </p>
         </div>

@@ -1,20 +1,23 @@
-Optimize for **this exact job** using **only** the experience dossier below. Output JSON for an ATS HTML résumé (summary, competencies, optional work experience, projects, skills).
+Optimize for **this exact job** using **only** the experience dossier below. Select and write content for **{{num_projects}}** project slots. **The array order is the resume order:** put the **most relevant and impressive** project for this role in **slot 1** (JSON ``projects[0]``), then the next-best below that—see system prompt goals and rule B. The Word file is layout-only—you are not rewriting text from a previous resume file.
 
-## CAPS (hard limits — do not exceed)
-- Max **experience** entries: **{{max_experience}}**
-- Max **projects** entries: **{{max_projects}}**
-- Max bullets per **experience** block: **{{max_bullets_experience}}**
-- Max bullets per **project** block: **{{max_bullets_project}}**
-
-## PROJECT CHECKLIST (read before the full dossier)
+## PROJECT CHECKLIST (read this before the full dossier)
 
 {{project_catalog}}
 
 ## EXPERIENCE DOSSIER
 
-The dossier includes a ``## Personal skills`` section with three labeled lines (**Languages**, **Frameworks & Libraries**, **Tools & Technologies**). Map those lines to the JSON ``skills`` object — **never** invent tokens not on the matching line.
+The dossier includes a ``## Personal skills`` section with three labeled lines (**Languages**, **Frameworks & Libraries**, **Tools & Technologies**). For the JSON ``skills`` object, you **must choose only from those lines**—same category to same key (Languages → Languages, etc.). **Subset and reorder** for this job; **never** add a token to ``skills`` that does not appear on the matching Personal skills line (use project ``### Stack & tools`` / ``### JD keywords`` only for **per-project ``technologies``** and bullets—not for inventing resume-wide skills). If something is missing from Personal skills, extend the dossier in real life; do not fabricate it in JSON. **Each job posting should get a different selection and left-to-right order** when the JD differs. Each project is a ``##`` **name** plus ``### Subtitles** (candidate lines). Output **``name``** + **``subtitle``** (one list line each) when possible—cleaner than a combined ``title``. The resume line is always **``Name — one subtitle``** with a single em dash (see system prompt rule D).
 
 {{dossier}}
+
+## TEMPLATE CONSTRAINTS
+
+- Fill exactly **{{num_projects}}** projects. **Preserve strategic order:** ``projects[0]`` = first on the resume = **strongest JD fit + strongest dossier proof**; later indices = progressively weaker on that combined bar. Do not use alphabetical or random order.
+- **If this job stresses LLMs, RAG, or AI agents:** rank projects using dossier evidence of **model integration and prompts**, not **only** traffic or database size. A hackathon or shorter project still belongs **high** if it is the **clearest** match for **API or multimodal LLM** work in the dossier.
+- **Dates (rule E):** Use **only** ``Month Year``, or ``Month Year - Month Year``, or ``Month Year - Present`` (spaced hyphen, capital **P** on Present). No year-only, quarters, or free-text event labels in ``date_range``—use the event’s month and year (e.g. hackathon → ``March 2026``).
+- Bullet counts per slot (must match exactly): **{{bullets_per_slot}}**. Aim for substantive bullets (~140–190 chars / 22–30 words each) packed with concrete dossier facts—do not exceed ~35 words. A separate polish pass will pick the back half of each project's bullets and shorten only those, so do NOT pre-shorten or try to alternate lengths here; focus on content density, metrics, and JD signal per rule C.
+- Per-project **technologies**: you may list **many** comma-separated tools/frameworks **for that project** (dossier-true), ordered **most relevant and impressive for this job → least**. JobRadar **keeps the first 7** and **drops the rest from the end**—put must-haves first (system prompt rule F).
+- Resume **skills** (three JSON lines): tokens **only** from ``## Personal skills`` in the dossier, **best-first** for this posting; the app **trims tails** to **Languages** 4–6, **Frameworks & Libraries** 5–7, **Tools & Technologies** 5–7. Front-load JD-relevant terms that **are listed** there (system prompt rule G).
 
 ## JOB LISTING
 

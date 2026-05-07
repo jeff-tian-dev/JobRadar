@@ -75,6 +75,24 @@ export interface TailorModelOption {
   label: string
 }
 
+/** Server defaults for tailor UI (from settings.yaml); dashboard can override per request. */
+export interface TailorUiDefaults {
+  tailor_think: boolean
+}
+
+/** Options passed from TailorPreview when running the tailor LLM. */
+export interface TailorLlmRequestOptions {
+  tailor_think: boolean
+}
+
+export interface TailorGenerateOptions extends TailorLlmRequestOptions {
+  model: string
+}
+
+export const DEFAULT_TAILOR_UI_DEFAULTS: TailorUiDefaults = {
+  tailor_think: false,
+}
+
 export interface Meta {
   profile_id: string
   db_path: string
@@ -85,6 +103,7 @@ export interface Meta {
   listing_count: number
   tailor_models: TailorModelOption[]
   default_tailor_model: string
+  tailor_ui_defaults?: TailorUiDefaults
 }
 
 /** POST /api/tailor/from-text */
@@ -106,14 +125,10 @@ export interface TailorProjectPreview {
   /** Present on tailored output; may be empty on original/dossier side. */
   date_range?: string
   technologies?: string
-  dossier_source?: string
 }
 
 export interface TailorOriginal {
-  experience: TailorProjectPreview[]
   projects: TailorProjectPreview[]
-  professional_summary?: string
-  core_competencies?: string[]
   skills: Record<string, string>
 }
 
@@ -152,20 +167,15 @@ export interface TailorOllamaMetrics {
   memory_note: string
 }
 
-export interface TailorTailored {
-  best_title: string
-  professional_summary: string
-  core_competencies: string[]
-  experience: TailorProjectPreview[]
-  projects: TailorProjectPreview[]
-  skills: Record<string, string>
-}
-
 export interface TailorResult {
   filename: string
-  pdf_base64: string
+  docx_base64: string
   original: TailorOriginal
-  tailored: TailorTailored
+  tailored: {
+    projects: TailorProjectPreview[]
+    skills: Record<string, string>
+    best_title: string
+  }
   explanation: {
     job_analysis: string
     change_summary: string[]
@@ -176,20 +186,15 @@ export interface TailorResult {
 /** Payload for POST /api/tailor/rebuild (user-edited resume fields). */
 export interface RebuildRequest {
   best_title: string
-  professional_summary: string
-  core_competencies: string[]
-  experience: TailorProjectPreview[]
   projects: TailorProjectPreview[]
   skills: Record<string, string>
-  job_analysis: string
-  change_summary: string[]
 }
 
 /** Response from POST /api/tailor/rebuild (includes preview sync after one-page trim). */
 export interface RebuildResponse {
   filename: string
-  pdf_base64: string
-  tailored: TailorTailored
+  docx_base64: string
+  tailored: TailorResult['tailored']
   explanation: TailorResult['explanation']
   ollama_metrics?: TailorOllamaMetrics
 }
