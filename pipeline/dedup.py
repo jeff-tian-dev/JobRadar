@@ -13,6 +13,8 @@ def listing_dedup_hash(title: str, company: str, location_raw: str | None) -> st
     If city cannot be extracted, use normalized full location_raw (documented fallback).
     """
     city, _ = extract_city_country(location_raw)
+    # Fall back to the full location string when city parsing fails (e.g. "Remote",
+    # "Hybrid - Toronto") so listings still dedupe consistently instead of hashing "".
     city_part = city if city else (location_raw or "")
     parts = "|".join(
         [
