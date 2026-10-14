@@ -87,6 +87,8 @@ def weighted_overall(
     comp: int,
     weights: dict[str, float],
 ) -> float:
+    # Defaults (0.4 / 0.35 / 0.25) prioritize role fit over preferences and competitiveness;
+    # profile YAML can override via scoring_weights.
     w_fit = float(weights.get("fit", 0.4))
     w_pref = float(weights.get("preference", 0.35))
     w_comp = float(weights.get("competitiveness", 0.25))
