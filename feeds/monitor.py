@@ -32,6 +32,8 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_TIMEOUT = 30.0
 _DEFAULT_MAX_FAILURES = 5
+# Feed-level concurrency is higher than Greenhouse detail fetches because each board
+# listing is one HTTP call, while detail enrichment fans out per job inside a company.
 _DEFAULT_CONCURRENCY = 20  # simultaneous feed fetches
 _GREENHOUSE_DETAIL_CONCURRENCY = 10  # per-company parallel job-detail fetches
 
